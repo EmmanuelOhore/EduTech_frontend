@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #184e77;
+  --primary-light: #e0f2fe;
+  --primary-soft: #eef6fb;
+  --secondary: #287271;
+  --text-dark: #172033;
+  --text-gray: #64748b;
+  --bg-light: #f6f8fb;
+  --white: #ffffff;
+  --outline-gray: #dbe4ef;
+
+  font-family: "Poppins", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #172033;
+  background: #f6f8fb;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-weight: 400;
+}
+
+.font-black {
+  font-weight: 600 !important;
+}
+
+.font-bold {
+  font-weight: 500 !important;
+}
+
+.font-semibold,
+.font-medium {
+  font-weight: 400 !important;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+@theme {
+  --breakpoint-laptop: 1025px;
+  --breakpoint-tablet: 900px;
+  --breakpoint-phoneL: 500px;
+  --breakpoint-phoneP: 350px;
+}
+
+.custom-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  background-color: #94a3b8;
+  border-radius: 4px;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}
