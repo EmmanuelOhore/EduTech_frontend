@@ -20,9 +20,7 @@ import type {
 } from "../types/TypeChecks";
 
 const api = axios.create({
-  baseURL:
-    import.meta.env.VITE_API_BASE_URL ??
-    "https://edutech-backend-659t.onrender.com",
+  baseURL: "https://edutech-backend-659t.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
