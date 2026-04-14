@@ -20,7 +20,9 @@ import type {
 } from "../types/TypeChecks";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5000/api",
+  baseURL:
+    import.meta.env.VITE_API_BASE_URL ??
+    "https://edutech-backend-659t.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
@@ -41,13 +43,18 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const prevRequest = error.config;
-    const requestUrl = typeof prevRequest?.url === "string" ? prevRequest.url : "";
+    const requestUrl =
+      typeof prevRequest?.url === "string" ? prevRequest.url : "";
     const isAuthAttempt =
       requestUrl.includes("/auth/login") ||
       requestUrl.includes("/auth/register/teacher") ||
       requestUrl.includes("/auth/register/institution");
 
-    if (error?.response?.status === 401 && !prevRequest?.sent && !isAuthAttempt) {
+    if (
+      error?.response?.status === 401 &&
+      !prevRequest?.sent &&
+      !isAuthAttempt
+    ) {
       clearStoredAuth();
       window.location.href = "/login";
     }
@@ -75,7 +82,10 @@ export const createJob = async (data: CreateJobPayload) => {
   return normalizeJob(response.data.job) as Job;
 };
 
-export const updateJob = async (id: string, data: Partial<CreateJobPayload>) => {
+export const updateJob = async (
+  id: string,
+  data: Partial<CreateJobPayload>,
+) => {
   const response = await api.put(`/jobs/${id}`, data);
   return normalizeJob(response.data.job) as Job;
 };
@@ -92,17 +102,23 @@ export const applyToJob = async (jobId: string, coverLetter?: string) => {
 
 export const fetchInstitutionApplications = async (institutionId: string) => {
   const response = await api.get(`/applications/institution/${institutionId}`);
-  return response.data.applications.map(normalizeApplication) as JobApplication[];
+  return response.data.applications.map(
+    normalizeApplication,
+  ) as JobApplication[];
 };
 
 export const fetchJobApplications = async (jobId: string) => {
   const response = await api.get(`/applications/job/${jobId}`);
-  return response.data.applications.map(normalizeApplication) as JobApplication[];
+  return response.data.applications.map(
+    normalizeApplication,
+  ) as JobApplication[];
 };
 
 export const fetchMyApplications = async () => {
   const response = await api.get("/applications/my");
-  return response.data.applications.map(normalizeApplication) as JobApplication[];
+  return response.data.applications.map(
+    normalizeApplication,
+  ) as JobApplication[];
 };
 
 export const fetchMyTeacherProfile = async () => {
@@ -115,36 +131,58 @@ export const fetchTeacherProfile = async (teacherId: string) => {
   return normalizeTeacherProfile(response.data.profile);
 };
 
-export const fetchTeacherReferences = async (teacherId: string): Promise<TeacherReferenceSummary> => {
+export const fetchTeacherReferences = async (
+  teacherId: string,
+): Promise<TeacherReferenceSummary> => {
   const response = await api.get(`/teacher-references/teacher/${teacherId}`);
   return {
     averageRating: response.data.averageRating ?? 0,
     count: response.data.count ?? 0,
-    references: response.data.references.map(normalizeTeacherReference) as TeacherReference[],
+    references: response.data.references.map(
+      normalizeTeacherReference,
+    ) as TeacherReference[],
   };
 };
 
-export const fetchMyTeacherReferences = async (): Promise<TeacherReferenceSummary> => {
-  const response = await api.get("/teacher-references/my");
-  return {
-    averageRating: response.data.averageRating ?? 0,
-    count: response.data.count ?? 0,
-    references: response.data.references.map(normalizeTeacherReference) as TeacherReference[],
+export const fetchMyTeacherReferences =
+  async (): Promise<TeacherReferenceSummary> => {
+    const response = await api.get("/teacher-references/my");
+    return {
+      averageRating: response.data.averageRating ?? 0,
+      count: response.data.count ?? 0,
+      references: response.data.references.map(
+        normalizeTeacherReference,
+      ) as TeacherReference[],
+    };
   };
-};
 
-export const fetchInstitutionTeacherReferences = async (institutionId: string): Promise<TeacherReferenceSummary> => {
-  const response = await api.get(`/teacher-references/institution/${institutionId}`);
+export const fetchInstitutionTeacherReferences = async (
+  institutionId: string,
+): Promise<TeacherReferenceSummary> => {
+  const response = await api.get(
+    `/teacher-references/institution/${institutionId}`,
+  );
   return {
     averageRating: response.data.references?.length
-      ? Number((response.data.references.reduce((sum: number, ref: { rating: number }) => sum + ref.rating, 0) / response.data.references.length).toFixed(1))
+      ? Number(
+          (
+            response.data.references.reduce(
+              (sum: number, ref: { rating: number }) => sum + ref.rating,
+              0,
+            ) / response.data.references.length
+          ).toFixed(1),
+        )
       : 0,
     count: response.data.count ?? 0,
-    references: response.data.references.map(normalizeTeacherReference) as TeacherReference[],
+    references: response.data.references.map(
+      normalizeTeacherReference,
+    ) as TeacherReference[],
   };
 };
 
-export const createTeacherReference = async (data: CreateTeacherReferencePayload) => {
+export const createTeacherReference = async (
+  data: CreateTeacherReferencePayload,
+) => {
   const response = await api.post("/teacher-references", data);
   return normalizeTeacherReference(response.data.reference) as TeacherReference;
 };
@@ -154,12 +192,18 @@ export const deleteTeacherReference = async (id: string) => {
   return response.data;
 };
 
-export const updateApplicationStatus = async (id: string, status: ApplicationStatus) => {
+export const updateApplicationStatus = async (
+  id: string,
+  status: ApplicationStatus,
+) => {
   const response = await api.patch(`/applications/${id}/status`, { status });
   return normalizeApplication(response.data.application) as JobApplication;
 };
 
-export const uploadAsset = async (file: File, category: UploadCategory): Promise<UploadedAsset> => {
+export const uploadAsset = async (
+  file: File,
+  category: UploadCategory,
+): Promise<UploadedAsset> => {
   const formData = new FormData();
   formData.append("file", file);
   formData.append("category", category);
@@ -184,7 +228,9 @@ export const changeMyPassword = async (data: ChangePasswordPayload) => {
   return response.data;
 };
 
-export const updateMyTeacherProfile = async (data: UpdateTeacherProfilePayload) => {
+export const updateMyTeacherProfile = async (
+  data: UpdateTeacherProfilePayload,
+) => {
   const {
     firstName,
     lastName,
@@ -201,7 +247,11 @@ export const updateMyTeacherProfile = async (data: UpdateTeacherProfilePayload) 
   const promises: Promise<unknown>[] = [];
 
   // 1. User-level fields → PATCH /auth/me
-  if (firstName !== undefined || lastName !== undefined || profileImage !== undefined) {
+  if (
+    firstName !== undefined ||
+    lastName !== undefined ||
+    profileImage !== undefined
+  ) {
     promises.push(api.patch("/auth/me", { firstName, lastName, profileImage }));
   }
 
@@ -212,7 +262,8 @@ export const updateMyTeacherProfile = async (data: UpdateTeacherProfilePayload) 
   if (bio !== undefined) teacherBody.bio = bio;
   if (certificateUrl !== undefined) teacherBody.certificateUrl = certificateUrl;
   if (ninDocumentUrl !== undefined) teacherBody.ninDocumentUrl = ninDocumentUrl;
-  if (teachingRecords !== undefined) teacherBody.teachingRecords = teachingRecords;
+  if (teachingRecords !== undefined)
+    teacherBody.teachingRecords = teachingRecords;
   if (Object.keys(teacherBody).length > 0) {
     promises.push(api.put("/teachers/profile", teacherBody));
   }
@@ -227,12 +278,17 @@ export const updateMyTeacherProfile = async (data: UpdateTeacherProfilePayload) 
 };
 
 // ── Institution endpoints ─────────────────────────────────────────
-export const fetchInstitution = async (id: string): Promise<FullInstitution> => {
+export const fetchInstitution = async (
+  id: string,
+): Promise<FullInstitution> => {
   const response = await api.get(`/institutions/${id}`);
   return response.data.institution as FullInstitution;
 };
 
-export const updateMyInstitution = async (id: string, data: UpdateInstitutionPayload) => {
+export const updateMyInstitution = async (
+  id: string,
+  data: UpdateInstitutionPayload,
+) => {
   const response = await api.put(`/institutions/${id}`, data);
   return response.data.institution as FullInstitution;
 };
@@ -335,9 +391,7 @@ const normalizeJob = (job: RawJob): Job => {
       ? job.institutionId
       : null;
   const subject =
-    job.subjectId && typeof job.subjectId === "object"
-      ? job.subjectId
-      : null;
+    job.subjectId && typeof job.subjectId === "object" ? job.subjectId : null;
 
   return {
     _id: String(job._id),
@@ -383,8 +437,11 @@ const normalizeApplication = (application: RawApplication): JobApplication => {
 
   return {
     id: String(application._id),
-    teacherId: application.teacherId ? String((application.teacherId as { _id?: string })._id ?? "") : undefined,
-    teacherName: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Teacher",
+    teacherId: application.teacherId
+      ? String((application.teacherId as { _id?: string })._id ?? "")
+      : undefined,
+    teacherName:
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Teacher",
     teacherEmail: user?.email ?? "No email",
     teacherAvatar: user?.profileImage,
     teacherLevel: application.teacherId?.level ?? "Not set",
@@ -421,7 +478,9 @@ const normalizeApplication = (application: RawApplication): JobApplication => {
   };
 };
 
-const normalizeTeacherProfile = (profile: RawTeacherProfile): TeacherProfile => ({
+const normalizeTeacherProfile = (
+  profile: RawTeacherProfile,
+): TeacherProfile => ({
   id: String(profile._id),
   userId: String(profile.userId?._id ?? ""),
   firstName: profile.userId?.firstName ?? "",
@@ -446,15 +505,26 @@ const normalizeTeacherProfile = (profile: RawTeacherProfile): TeacherProfile => 
     : "—",
 });
 
-const normalizeTeacherReference = (reference: RawTeacherReference): TeacherReference => ({
+const normalizeTeacherReference = (
+  reference: RawTeacherReference,
+): TeacherReference => ({
   id: String(reference._id),
   teacherId: String(reference.teacherId?._id ?? ""),
-  teacherName: [reference.teacherId?.userId?.firstName, reference.teacherId?.userId?.lastName].filter(Boolean).join(" ") || "Teacher",
+  teacherName:
+    [
+      reference.teacherId?.userId?.firstName,
+      reference.teacherId?.userId?.lastName,
+    ]
+      .filter(Boolean)
+      .join(" ") || "Teacher",
   teacherEmail: reference.teacherId?.userId?.email ?? "No email",
   teacherAvatar: reference.teacherId?.userId?.profileImage,
   teacherLevel: reference.teacherId?.level ?? "BEGINNER",
   teacherLocation: reference.teacherId?.location ?? "Not set",
-  subject: reference.jobId && typeof reference.jobId.subjectId === "object" ? reference.jobId.subjectId?.name : undefined,
+  subject:
+    reference.jobId && typeof reference.jobId.subjectId === "object"
+      ? reference.jobId.subjectId?.name
+      : undefined,
   relatedJob: reference.jobId?.title ?? "Unknown job",
   relatedJobId: String(reference.jobId?._id ?? ""),
   jobLocation: reference.jobId?.location ?? "Not set",
@@ -471,7 +541,9 @@ const normalizeTeacherReference = (reference: RawTeacherReference): TeacherRefer
 });
 
 // ── Rotational Job Meta ───────────────────────────────────────────
-export const fetchRotationalJobMeta = async (jobId: string): Promise<import("../types/TypeChecks").RotationalJobMeta | null> => {
+export const fetchRotationalJobMeta = async (
+  jobId: string,
+): Promise<import("../types/TypeChecks").RotationalJobMeta | null> => {
   try {
     const response = await api.get(`/rotational-meta/job/${jobId}`);
     return response.data.meta;
@@ -480,12 +552,17 @@ export const fetchRotationalJobMeta = async (jobId: string): Promise<import("../
   }
 };
 
-export const createRotationalJobMeta = async (data: import("../types/TypeChecks").CreateRotationalJobMetaPayload) => {
+export const createRotationalJobMeta = async (
+  data: import("../types/TypeChecks").CreateRotationalJobMetaPayload,
+) => {
   const response = await api.post("/rotational-meta", data);
   return response.data.meta;
 };
 
-export const updateRotationalJobMeta = async (id: string, data: Partial<import("../types/TypeChecks").CreateRotationalJobMetaPayload>) => {
+export const updateRotationalJobMeta = async (
+  id: string,
+  data: Partial<import("../types/TypeChecks").CreateRotationalJobMetaPayload>,
+) => {
   const response = await api.put(`/rotational-meta/${id}`, data);
   return response.data.meta;
 };
@@ -496,17 +573,23 @@ export const deleteRotationalJobMeta = async (id: string) => {
 };
 
 // ── Teacher Availability ──────────────────────────────────────────
-export const fetchMyAvailability = async (): Promise<import("../types/TypeChecks").TeacherAvailability[]> => {
+export const fetchMyAvailability = async (): Promise<
+  import("../types/TypeChecks").TeacherAvailability[]
+> => {
   const response = await api.get("/availability/my");
   return response.data.availability;
 };
 
-export const fetchTeacherAvailability = async (teacherId: string): Promise<import("../types/TypeChecks").TeacherAvailability[]> => {
+export const fetchTeacherAvailability = async (
+  teacherId: string,
+): Promise<import("../types/TypeChecks").TeacherAvailability[]> => {
   const response = await api.get(`/availability/teacher/${teacherId}`);
   return response.data.availability;
 };
 
-export const upsertMyAvailability = async (data: import("../types/TypeChecks").UpsertAvailabilityPayload) => {
+export const upsertMyAvailability = async (
+  data: import("../types/TypeChecks").UpsertAvailabilityPayload,
+) => {
   const response = await api.put("/availability", data);
   return response.data.availability;
 };
@@ -517,7 +600,9 @@ export const deleteAvailabilitySlot = async (id: string) => {
 };
 
 // ── Session Templates ─────────────────────────────────────────────
-export const fetchSessionsByJob = async (jobId: string): Promise<import("../types/TypeChecks").SessionTemplate[]> => {
+export const fetchSessionsByJob = async (
+  jobId: string,
+): Promise<import("../types/TypeChecks").SessionTemplate[]> => {
   const response = await api.get(`/sessions/job/${jobId}`);
   return response.data.sessions;
 };
@@ -527,12 +612,17 @@ export const fetchSessionById = async (id: string) => {
   return response.data;
 };
 
-export const createSession = async (data: import("../types/TypeChecks").CreateSessionPayload): Promise<import("../types/TypeChecks").SessionTemplate> => {
+export const createSession = async (
+  data: import("../types/TypeChecks").CreateSessionPayload,
+): Promise<import("../types/TypeChecks").SessionTemplate> => {
   const response = await api.post("/sessions", data);
   return response.data.session;
 };
 
-export const updateSession = async (id: string, data: Partial<import("../types/TypeChecks").CreateSessionPayload>): Promise<import("../types/TypeChecks").SessionTemplate> => {
+export const updateSession = async (
+  id: string,
+  data: Partial<import("../types/TypeChecks").CreateSessionPayload>,
+): Promise<import("../types/TypeChecks").SessionTemplate> => {
   const response = await api.put(`/sessions/${id}`, data);
   return response.data.session;
 };
@@ -561,24 +651,30 @@ type RawRosterItem = import("../types/TypeChecks").SessionTemplate & {
   assignments: RawRosterAssignment[];
 };
 
-export const fetchMyAssignments = async (): Promise<import("../types/TypeChecks").Assignment[]> => {
+export const fetchMyAssignments = async (): Promise<
+  import("../types/TypeChecks").Assignment[]
+> => {
   const response = await api.get("/assignments/my");
   return response.data.assignments;
 };
 
-export const fetchRosterByJob = async (jobId: string): Promise<import("../types/TypeChecks").RosterSession[]> => {
+export const fetchRosterByJob = async (
+  jobId: string,
+): Promise<import("../types/TypeChecks").RosterSession[]> => {
   const response = await api.get(`/assignments/roster/${jobId}`);
   const raw: RawRosterItem[] = response.data.roster ?? [];
-  return raw.map(session => ({
+  return raw.map((session) => ({
     ...session,
     _id: String(session._id),
-    assignments: (session.assignments ?? []).map(a => {
+    assignments: (session.assignments ?? []).map((a) => {
       const profile = a.teacherId as RawAssignmentTeacher | undefined;
       const user = profile?.userId;
       return {
         assignmentId: String(a._id),
         teacherId: profile?._id ? String(profile._id) : String(a.teacherId),
-        teacherName: [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Teacher",
+        teacherName:
+          [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+          "Teacher",
         teacherAvatar: user?.profileImage,
         teacherLevel: profile?.level ?? "BEGINNER",
         status: a.status,
@@ -592,7 +688,9 @@ export const fetchAssignmentsByJob = async (jobId: string) => {
   return response.data.assignments;
 };
 
-export const createAssignment = async (data: import("../types/TypeChecks").CreateAssignmentPayload) => {
+export const createAssignment = async (
+  data: import("../types/TypeChecks").CreateAssignmentPayload,
+) => {
   const response = await api.post("/assignments", data);
   return response.data.assignment;
 };
@@ -602,7 +700,10 @@ export const deleteAssignment = async (id: string) => {
   return response.data;
 };
 
-export const updateAssignmentStatus = async (id: string, status: import("../types/TypeChecks").AssignmentStatus) => {
+export const updateAssignmentStatus = async (
+  id: string,
+  status: import("../types/TypeChecks").AssignmentStatus,
+) => {
   const response = await api.patch(`/assignments/${id}/status`, { status });
   return response.data.assignment;
 };

@@ -114,6 +114,9 @@ const HomePage = () => {
     user?.role === "INSTITUTION_ADMIN" || user?.role === "SUPER_ADMIN"
       ? "/school/dashboard"
       : "/dashboard";
+  const firstInitial = user?.firstName?.trim().charAt(0).toUpperCase() ?? "";
+  const lastInitial = user?.lastName?.trim().charAt(0).toUpperCase() ?? "";
+  const userInitials = `${firstInitial}${lastInitial}` || "E";
 
   return (
     <div className="min-h-screen bg-[#f6f8fb] text-[#172033]">
@@ -158,8 +161,7 @@ const HomePage = () => {
                 className="grid size-9 place-items-center rounded-lg bg-[#e0f2fe] text-sm font-black text-[#184e77]"
                 aria-label="Log out"
               >
-                {user.firstName.charAt(0)}
-                {user.lastName.charAt(0)}
+                {userInitials}
               </button>
             </div>
           ) : (
