@@ -9,37 +9,37 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../lib/AuthContext";
 
 const features = [
   {
     icon: GraduationCap,
-    title: "For Teachers",
-    body: "Create your profile, add subjects, manage availability, and apply for roles that match your experience.",
+    title: "For Staff",
+    body: "Create one profile for teaching, driving, janitorial, or admin roles and apply for jobs that match your location.",
   },
   {
     icon: Building2,
     title: "For Schools",
-    body: "Post openings, review qualified educators, and manage hiring from one focused workspace.",
+    body: "Post openings, review qualified staff, and manage hiring from one focused workspace.",
   },
   {
     icon: TrendingUp,
     title: "Smart Matching",
-    body: "Match teachers to opportunities using subject, location, level, and availability signals.",
+    body: "Match staff to opportunities using role, location, skills, level, and availability signals.",
   },
 ];
 
-const teacherSteps = [
+const staffSteps = [
   {
     number: "01",
     title: "Sign Up",
-    body: "Create your free teacher account with basic information.",
+    body: "Create your free staff account and choose your role.",
   },
   {
     number: "02",
     title: "Build Profile",
-    body: "Add your bio, certificates, subjects, and teaching level.",
+    body: "Add your location, documents, skills, and role-specific details.",
   },
   {
     number: "03",
@@ -62,7 +62,7 @@ const schoolSteps = [
   {
     number: "03",
     title: "Review & Hire",
-    body: "Browse applications, review teacher profiles, and hire.",
+    body: "Browse applications, review staff profiles, and hire.",
   },
 ];
 
@@ -70,7 +70,7 @@ const stats = [
   {
     icon: Users,
     value: "500+",
-    label: "Active Teachers",
+    label: "Active Staff",
   },
   {
     icon: Building2,
@@ -111,12 +111,18 @@ const HomePage = () => {
   const { isAuthenticated, user, logout } = useAuth();
   const loggedInNavLinks = isAuthenticated ? navLinks : navLinks.slice(0, 1);
   const dashboardPath =
-    user?.role === "INSTITUTION_ADMIN" || user?.role === "SUPER_ADMIN"
+    user?.role === "SUPER_ADMIN"
+      ? "/admin/dashboard"
+      : user?.role === "INSTITUTION_ADMIN"
       ? "/school/dashboard"
       : "/dashboard";
   const firstInitial = user?.firstName?.trim().charAt(0).toUpperCase() ?? "";
   const lastInitial = user?.lastName?.trim().charAt(0).toUpperCase() ?? "";
   const userInitials = `${firstInitial}${lastInitial}` || "E";
+
+  if (isAuthenticated) {
+    return <Navigate to={dashboardPath} replace />;
+  }
 
   return (
     <div className="min-h-screen bg-[#f6f8fb] text-[#172033]">
@@ -180,21 +186,21 @@ const HomePage = () => {
         className="mx-auto grid w-full max-w-6xl justify-items-center px-6 py-20 text-center max-phoneL:px-4 max-phoneL:py-14"
       >
         <p className="mb-5 rounded-lg border border-[#dbe4ef] bg-white px-4 py-2 text-sm font-bold text-[#184e77]">
-          New platform for educators
+          New platform for school staffing
         </p>
         <h1 className="max-w-3xl text-6xl font-black leading-none tracking-normal text-[#111827] max-tablet:text-5xl max-phoneL:text-4xl">
-          Connect teachers with schools that need them.
+          Connect schools with the staff they need.
         </h1>
         <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 max-phoneL:text-base">
-          A focused recruitment platform for schools and qualified educators to
-          find the right match by subject, location, level, and availability.
+          A focused recruitment platform for teachers, drivers, janitors, admin staff,
+          and schools to find the right match by role, location, level, and availability.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            to="/teacher/register"
+            to="/staff/register"
             className="flex min-h-11 items-center gap-2 rounded-lg bg-[#184e77] px-5 text-sm font-bold text-white shadow-lg shadow-[#184e77]/15"
           >
-            I am a Teacher <ArrowRight size={16} />
+            I am Staff <ArrowRight size={16} />
           </Link>
           <Link
             to="/school/register"
@@ -206,7 +212,7 @@ const HomePage = () => {
         <div className="mt-9 flex flex-wrap justify-center gap-8 text-sm text-slate-500">
           <span>
             <strong className="block text-2xl text-[#172033]">500+</strong>
-            Teachers
+            Staff
           </span>
           <span>
             <strong className="block text-2xl text-[#172033]">200+</strong>
@@ -232,7 +238,7 @@ const HomePage = () => {
             Why Choose Our Platform
           </h2>
           <p className="mt-3 text-slate-600">
-            Streamlined recruitment for educators and schools with practical
+            Streamlined recruitment for school staff and schools with practical
             matching tools.
           </p>
         </div>
@@ -269,10 +275,10 @@ const HomePage = () => {
           <p className="mt-3 text-slate-600">Simple steps to connect and hire.</p>
         </div>
 
-        <div id="teacher-steps">
-          <h3 className="mb-5 text-2xl font-black">For Teachers</h3>
+        <div id="staff-steps">
+          <h3 className="mb-5 text-2xl font-black">For Staff</h3>
           <div className="grid grid-cols-3 gap-5 max-tablet:grid-cols-1">
-            {teacherSteps.map((step) => (
+            {staffSteps.map((step) => (
               <article
                 key={step.title}
                 className="rounded-lg border border-[#dbe4ef] bg-white p-6 shadow-xl shadow-slate-900/[0.04]"
@@ -334,14 +340,14 @@ const HomePage = () => {
           Ready to get started?
         </h2>
         <p className="mt-4 max-w-xl leading-7 text-slate-600">
-          Join teachers and schools connecting through a clearer hiring process.
+          Join school staff and schools connecting through a clearer hiring process.
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <Link
-            to="/teacher/register"
+            to="/staff/register"
             className="flex min-h-11 items-center gap-2 rounded-lg bg-[#184e77] px-5 text-sm font-bold text-white"
           >
-            Sign Up as Teacher <ArrowRight size={16} />
+            Sign Up as Staff <ArrowRight size={16} />
           </Link>
           <Link
             to="/school/register"
@@ -353,7 +359,7 @@ const HomePage = () => {
         <p className="mt-5 text-sm text-slate-500">
           Already have an account?{" "}
           <Link to="/login" className="font-bold text-[#184e77]">
-            Sign in as Teacher or School.
+            Sign in as Staff or School.
           </Link>
         </p>
       </section>
@@ -368,7 +374,7 @@ const HomePage = () => {
               <span>EduStaff Connect</span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-6 text-slate-600">
-              Connecting talented educators with exceptional schools.
+              Connecting talented school staff with exceptional schools.
             </p>
           </div>
           <div>

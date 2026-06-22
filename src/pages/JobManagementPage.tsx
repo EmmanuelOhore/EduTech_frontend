@@ -17,12 +17,14 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import AdminLayout from "../layout/AdminLayout";
 import { useAuth } from "../lib/AuthContext";
-import { useCreateJobMutation, useCreateRotationalJobMetaMutation, useDeleteJobMutation, useUpdateJobMutation } from "../services/mutation";
-import { useFetchInstitutionJobs } from "../services/queries";
+import { nigeriaLocations, stateOptions } from "../lib/nigeriaLocations";
+import { useCreateJobMutation, useCreateRotationalJobMetaMutation, useDeleteJobMutation, useUpdateJobMutation, useCreateJobTemplateMutation, useUpdateJobTemplateMutation, useDeleteJobTemplateMutation } from "../services/mutation";
+import { useFetchInstitutionJobs, useFetchJobTemplates } from "../services/queries";
+import { generateJobDescription } from "../services/base";
+import type { JobTemplate } from "../services/base";
 import type { CreateJobPayload, Job } from "../types/TypeChecks";
 
 const SUBJECTS = ["All Subjects", "Mathematics", "Physics", "Chemistry", "Biology", "English", "Economics", "Computer Science", "History", "French"];
-const LOCATIONS = ["All Locations", "Lagos", "Abuja", "Port Harcourt", "Ibadan", "Kano", "Enugu"];
 const LEVELS = ["All Levels", "BEGINNER", "INTERMEDIATE", "EXPERT"];
 const EMP_TYPES = ["FULL_TIME", "PART_TIME", "ROTATIONAL"];
 
@@ -30,13 +32,15 @@ type JobStatus = "Active" | "Draft";
 type JobForm = {
   title: string;
   subject: string;
-  location: string;
+  state: string;
+  lga: string;
   level: Job["level"];
   employmentType: Job["employmentType"];
   salaryRange: string;
   description: string;
   requirements: string;
   responsibilities: string;
+  screeningQuestions: string;
   slots: number;
   status: JobStatus;
   // Rotational fields
@@ -46,11 +50,6 @@ type JobForm = {
   requiresWeekendAvailability?: boolean;
   requiresMultiBranchTravel?: boolean;
   rotationalBranches?: string;
-};
-
-type JobContentTemplate = {
-  requirements: string;
-  responsibilities: string;
 };
 
 const statusStyle: Record<string, string> = {
@@ -84,7 +83,6 @@ const LEVEL_LABELS: Record<Job["level"], string> = {
 };
 
 const ITEMS_PER_PAGE = 5;
-const JOB_CONTENT_TEMPLATE_KEY = "edustaff-job-content-template";
 
 const splitLines = (value: string) =>
   value
@@ -95,13 +93,15 @@ const splitLines = (value: string) =>
 const emptyJobForm: JobForm = {
   title: "",
   subject: "Mathematics",
-  location: "Lagos",
+  state: "Lagos",
+  lga: "Lagos Mainland",
   level: "INTERMEDIATE",
   employmentType: "FULL_TIME",
   salaryRange: "",
   description: "",
   requirements: "",
   responsibilities: "",
+  screeningQuestions: "",
   slots: 1,
   status: "Active",
   rotationMode: "FIXED_DAYS",
@@ -123,18 +123,33 @@ interface CreatePanelProps {
 
 const CreateJobPanel = ({ open, onClose, onSave, isSaving, editingJob }: CreatePanelProps) => {
   const [form, setForm] = useState(emptyJobForm);
-  const [template, setTemplate] = useState<JobContentTemplate | null>(() => {
-    const rawTemplate = localStorage.getItem(JOB_CONTENT_TEMPLATE_KEY);
-    if (!rawTemplate) return null;
-    try {
-      return JSON.parse(rawTemplate) as JobContentTemplate;
-    } catch {
-      localStorage.removeItem(JOB_CONTENT_TEMPLATE_KEY);
-      return null;
-    }
-  });
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Account-backed job templates (shared across the school's devices & teammates)
+  const templatesQuery = useFetchJobTemplates(open);
+  const templates = templatesQuery.data ?? [];
+  const createTemplate = useCreateJobTemplateMutation();
+  const updateTemplate = useUpdateJobTemplateMutation();
+  const removeTemplate = useDeleteJobTemplateMutation();
+
+  // Template-manager UI state
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   useEffect(() => {
+    // Reset transient UI whenever the modal opens or closes, so nothing
+    // carries over from the previous time it was used.
+    setLibraryOpen(false);
+    setTemplateSearch("");
+    setShowSaveForm(false);
+    setNewTemplateName("");
+    setRenamingId(null);
+    setIsGenerating(false);
+
     if (!editingJob) {
       setForm(emptyJobForm);
       return;
@@ -143,53 +158,176 @@ const CreateJobPanel = ({ open, onClose, onSave, isSaving, editingJob }: CreateP
     setForm({
       title: editingJob.title,
       subject: editingJob.subject ?? "Mathematics",
-      location: editingJob.location,
+      state: editingJob.state ?? "Lagos",
+      lga: editingJob.lga ?? editingJob.location ?? "Lagos Mainland",
       level: editingJob.level,
       employmentType: editingJob.employmentType,
       salaryRange: editingJob.salaryRange ?? "",
       description: editingJob.description ?? "",
       requirements: editingJob.requirements?.join("\n") ?? "",
       responsibilities: editingJob.responsibilities?.join("\n") ?? "",
+      screeningQuestions: editingJob.screeningQuestions?.map((question) => question.question).join("\n") ?? "",
       slots: editingJob.slots ?? 1,
       status: editingJob.isActive ? "Active" : "Draft",
     });
-  }, [editingJob]);
+  }, [editingJob, open]);
 
-  const saveTemplate = () => {
-    const nextTemplate = {
-      requirements: form.requirements,
-      responsibilities: form.responsibilities,
-    };
-    localStorage.setItem(JOB_CONTENT_TEMPLATE_KEY, JSON.stringify(nextTemplate));
-    setTemplate(nextTemplate);
-    toast.success("Job content template saved");
-  };
-
-  const useTemplate = () => {
-    if (!template) {
-      toast("No saved template yet");
-      return;
-    }
+  // Apply a saved template's full content into the form.
+  const applyTemplate = (t: JobTemplate) => {
     setForm((current) => ({
       ...current,
-      requirements: template.requirements,
-      responsibilities: template.responsibilities,
+      description: t.description || current.description,
+      requirements: t.requirements.join("\n"),
+      responsibilities: t.responsibilities.join("\n"),
+      screeningQuestions: t.screeningQuestions.join("\n"),
     }));
-    toast.success("Template added");
+    setLibraryOpen(false);
+    toast.success(`Applied "${t.name}"`);
+  };
+
+  // Save the current draft as a new named template.
+  const handleSaveTemplate = () => {
+    const name = newTemplateName.trim();
+    if (!name) {
+      toast.error("Give the template a name");
+      return;
+    }
+    createTemplate.mutate(
+      {
+        name,
+        description: form.description,
+        requirements: splitLines(form.requirements),
+        responsibilities: splitLines(form.responsibilities),
+        screeningQuestions: splitLines(form.screeningQuestions),
+      },
+      {
+        onSuccess: () => {
+          setNewTemplateName("");
+          setShowSaveForm(false);
+        },
+      }
+    );
+  };
+
+  const handleRename = (id: string) => {
+    const name = renameValue.trim();
+    if (!name) {
+      toast.error("Name can't be empty");
+      return;
+    }
+    updateTemplate.mutate(
+      { id, data: { name } },
+      { onSuccess: () => setRenamingId(null) }
+    );
+  };
+
+  // Overwrite an existing template's content with the current draft.
+  const handleOverwrite = (t: JobTemplate) => {
+    updateTemplate.mutate({
+      id: t._id,
+      data: {
+        description: form.description,
+        requirements: splitLines(form.requirements),
+        responsibilities: splitLines(form.responsibilities),
+        screeningQuestions: splitLines(form.screeningQuestions),
+      },
+    });
+  };
+
+  // Templates matching the library search box.
+  const filteredTemplates = templates.filter((t) =>
+    t.name.toLowerCase().includes(templateSearch.trim().toLowerCase())
+  );
+
+  // Offline fallback: static template used when the AI call is unavailable.
+  // Only fills fields the school has left empty, so it never wipes their input.
+  const fillStaticDraft = () => {
+    const title = form.title.trim() || `${form.subject} Staff`;
+    setForm((current) => ({
+      ...current,
+      description: current.description || `${title} needed to support strong learning outcomes, daily school operations, and a safe, organized environment.`,
+      requirements: current.requirements || [
+        `Relevant qualification or proven experience in ${current.subject}`,
+        "Strong communication and classroom management skills",
+        "Ability to work with school leadership and parents professionally",
+        "Reliable, punctual, and comfortable with school policies",
+      ].join("\n"),
+      responsibilities: current.responsibilities || [
+        "Prepare and deliver clear weekly plans",
+        "Track learner progress and give timely feedback",
+        "Maintain a safe, orderly, and engaging learning environment",
+        "Report important updates to school leadership",
+      ].join("\n"),
+      screeningQuestions: current.screeningQuestions || [
+        "Do you have at least 2 years of relevant experience?",
+        "What is your expected monthly salary?",
+        `Are you available to work in ${current.lga}, ${current.state}?`,
+      ].join("\n"),
+    }));
+  };
+
+  // Primary path: AI-generated draft. Falls back to the static template if the
+  // AI provider is unavailable (e.g. no API key configured), so the button
+  // always does something useful.
+  const generateDraft = async () => {
+    if (isGenerating) return;
+    if (!form.title.trim()) {
+      toast.error("Add a job title first");
+      return;
+    }
+    setIsGenerating(true);
+    try {
+      const draft = await generateJobDescription({
+        title: form.title.trim(),
+        subject: form.subject,
+        level: form.level,
+        employmentType: form.employmentType,
+        state: form.state,
+        lga: form.lga,
+        salaryRange: form.salaryRange || undefined,
+      });
+      setForm((current) => ({
+        ...current,
+        description: draft.description || current.description,
+        requirements: draft.requirements.length
+          ? draft.requirements.join("\n")
+          : current.requirements,
+        responsibilities: draft.responsibilities.length
+          ? draft.responsibilities.join("\n")
+          : current.responsibilities,
+        screeningQuestions: draft.screeningQuestions.length
+          ? draft.screeningQuestions.join("\n")
+          : current.screeningQuestions,
+      }));
+      toast.success("AI draft generated");
+    } catch {
+      fillStaticDraft();
+      toast("AI unavailable — used a quick template instead");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSave = () => {
     if (!form.title.trim()) return;
+    const location = [form.lga, form.state].filter(Boolean).join(", ");
     const payload: CreateJobPayload = {
       title: form.title,
       subjectName: form.subject,
-      location: form.location,
+      location,
+      state: form.state,
+      lga: form.lga,
       level: form.level,
       employmentType: form.employmentType,
       description: form.description || undefined,
       salaryRange: form.salaryRange || undefined,
       requirements: splitLines(form.requirements),
       responsibilities: splitLines(form.responsibilities),
+      screeningQuestions: splitLines(form.screeningQuestions).map((question) => ({
+        question,
+        type: question.toLowerCase().includes("salary") ? "NUMBER" : "TEXT",
+        required: true,
+      })),
       slots: form.slots,
       isActive: form.status === "Active",
     };
@@ -271,15 +409,29 @@ const CreateJobPanel = ({ open, onClose, onSave, isSaving, editingJob }: CreateP
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-xs font-black text-[#172033]">Location</label>
+                <label className="mb-1.5 block text-xs font-black text-[#172033]">State</label>
                 <select
-                  value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  value={form.state}
+                  onChange={(e) => {
+                    const nextState = e.target.value;
+                    setForm({ ...form, state: nextState, lga: nigeriaLocations[nextState]?.[0] ?? "" });
+                  }}
                   className="w-full rounded-xl border border-[#dbe4ef] bg-[#f8fafc] px-3 py-2.5 text-sm text-[#172033] outline-none focus:border-[#184e77] focus:bg-white"
                 >
-                  {LOCATIONS.slice(1).map((l) => <option key={l}>{l}</option>)}
+                  {stateOptions.map((state) => <option key={state}>{state}</option>)}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-black text-[#172033]">LGA</label>
+              <select
+                value={form.lga}
+                onChange={(e) => setForm({ ...form, lga: e.target.value })}
+                className="w-full rounded-xl border border-[#dbe4ef] bg-[#f8fafc] px-3 py-2.5 text-sm text-[#172033] outline-none focus:border-[#184e77] focus:bg-white"
+              >
+                {(nigeriaLocations[form.state] ?? []).map((lga) => <option key={lga}>{lga}</option>)}
+              </select>
             </div>
 
             {/* Level + Type */}
@@ -440,25 +592,144 @@ const CreateJobPanel = ({ open, onClose, onSave, isSaving, editingJob }: CreateP
               <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="text-sm font-black text-[#172033]">Requirements & Responsibilities</p>
-                  <p className="text-xs text-slate-400">Write one item per line. Save it once and reuse later.</p>
+                  <p className="text-xs text-slate-400">Write one item per line. Generate with AI, or save reusable templates.</p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={useTemplate}
-                    className="rounded-lg border border-[#dbe4ef] bg-white px-3 py-1.5 text-xs font-bold text-[#184e77] transition hover:bg-[#e0f2fe]"
+                    onClick={generateDraft}
+                    disabled={isGenerating}
+                    className="rounded-lg border border-[#184e77]/20 bg-[#e0f2fe] px-3 py-1.5 text-xs font-bold text-[#184e77] transition hover:bg-[#bfdbfe] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Use Template
+                    {isGenerating ? "Generating…" : "✨ Generate with AI"}
                   </button>
                   <button
                     type="button"
-                    onClick={saveTemplate}
+                    onClick={() => { setShowSaveForm((s) => !s); }}
                     className="rounded-lg bg-[#287271] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#1f5f5e]"
                   >
-                    Save Template
+                    Save as Template
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setLibraryOpen(true); setShowSaveForm(false); }}
+                    className="rounded-lg border border-[#dbe4ef] bg-white px-3 py-1.5 text-xs font-bold text-[#184e77] transition hover:bg-[#e0f2fe]"
+                  >
+                    Templates ({templates.length})
                   </button>
                 </div>
               </div>
+
+              {showSaveForm && (
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-[#287271]/20 bg-[#287271]/5 p-3">
+                  <input
+                    autoFocus
+                    value={newTemplateName}
+                    onChange={(e) => setNewTemplateName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSaveTemplate()}
+                    placeholder="Template name (e.g. Science Teacher — SS1–SS3)"
+                    className="flex-1 rounded-lg border border-[#dbe4ef] bg-white px-3 py-2 text-sm outline-none focus:border-[#287271]"
+                  />
+                  <button type="button" onClick={handleSaveTemplate} disabled={createTemplate.isPending} className="rounded-lg bg-[#287271] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#1f5f5e] disabled:opacity-60">
+                    {createTemplate.isPending ? "Saving…" : "Save"}
+                  </button>
+                  <button type="button" onClick={() => { setShowSaveForm(false); setNewTemplateName(""); }} className="rounded-lg px-2 py-2 text-xs text-slate-400">Cancel</button>
+                </div>
+              )}
+
+              {/* ── Template Library modal ── */}
+              {libraryOpen && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+                  onClick={() => { setLibraryOpen(false); setRenamingId(null); }}
+                >
+                  <div
+                    className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="flex items-center justify-between border-b border-[#eef2f7] px-5 py-4">
+                      <div>
+                        <p className="text-base font-black text-[#172033]">Template Library</p>
+                        <p className="text-xs text-slate-400">
+                          {templates.length} saved template{templates.length === 1 ? "" : "s"} · click one to apply
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => setLibraryOpen(false)} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100">
+                        <X className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="border-b border-[#eef2f7] p-3">
+                      <div className="relative">
+                        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                        <input
+                          value={templateSearch}
+                          onChange={(e) => setTemplateSearch(e.target.value)}
+                          placeholder="Search templates…"
+                          className="w-full rounded-lg border border-[#dbe4ef] bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-[#184e77]"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-3">
+                      {templatesQuery.isLoading ? (
+                        <p className="px-2 py-8 text-center text-sm text-slate-400">Loading…</p>
+                      ) : templates.length === 0 ? (
+                        <div className="px-2 py-10 text-center">
+                          <p className="text-sm font-semibold text-[#172033]">No templates yet</p>
+                          <p className="mt-1 text-xs text-slate-400">Fill the requirements & responsibilities, then “Save as Template”.</p>
+                        </div>
+                      ) : filteredTemplates.length === 0 ? (
+                        <p className="px-2 py-8 text-center text-sm text-slate-400">No templates match “{templateSearch}”.</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {filteredTemplates.map((t) => (
+                            <li key={t._id} className="rounded-xl border border-[#e5ecf4] transition hover:border-[#184e77]/40">
+                              {renamingId === t._id ? (
+                                <div className="flex items-center gap-2 p-3">
+                                  <input
+                                    autoFocus
+                                    value={renameValue}
+                                    onChange={(e) => setRenameValue(e.target.value)}
+                                    onKeyDown={(e) => e.key === "Enter" && handleRename(t._id)}
+                                    className="flex-1 rounded-lg border border-[#dbe4ef] px-3 py-1.5 text-sm outline-none focus:border-[#184e77]"
+                                  />
+                                  <button type="button" onClick={() => handleRename(t._id)} className="rounded-lg bg-[#287271] px-3 py-1.5 text-xs font-bold text-white">Save</button>
+                                  <button type="button" onClick={() => setRenamingId(null)} className="text-xs text-slate-400">Cancel</button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-3 p-3">
+                                  <button type="button" onClick={() => applyTemplate(t)} className="min-w-0 flex-1 text-left">
+                                    <p className="truncate text-sm font-bold text-[#172033]">{t.name}</p>
+                                    <p className="truncate text-xs text-slate-400">
+                                      {t.requirements.length} requirements · {t.responsibilities.length} responsibilities · {t.screeningQuestions.length} questions
+                                    </p>
+                                  </button>
+                                  <button type="button" onClick={() => applyTemplate(t)} className="shrink-0 rounded-lg bg-[#184e77] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#123a5a]">
+                                    Apply
+                                  </button>
+                                  <div className="flex shrink-0 items-center gap-1 text-slate-400">
+                                    <button type="button" title="Rename" onClick={() => { setRenamingId(t._id); setRenameValue(t.name); }} className="rounded-lg p-1.5 transition hover:bg-slate-100 hover:text-[#184e77]">
+                                      <Pencil className="h-4 w-4" />
+                                    </button>
+                                    <button type="button" title="Replace with current draft" onClick={() => handleOverwrite(t)} className="rounded-lg p-1.5 transition hover:bg-slate-100 hover:text-[#287271]">
+                                      <RotateCcw className="h-4 w-4" />
+                                    </button>
+                                    <button type="button" title="Delete" onClick={() => removeTemplate.mutate(t._id)} className="rounded-lg p-1.5 transition hover:bg-red-50 hover:text-red-600">
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="grid gap-4">
                 <div>
                   <label className="mb-1.5 block text-xs font-black text-[#172033]">Requirements</label>
@@ -479,6 +750,17 @@ const CreateJobPanel = ({ open, onClose, onSave, isSaving, editingJob }: CreateP
                     placeholder={"Prepare weekly lesson notes\nAssess students and give feedback\nCommunicate with parents and school leadership"}
                     className="w-full resize-none rounded-xl border border-[#dbe4ef] bg-white px-4 py-2.5 text-sm text-[#172033] outline-none placeholder:text-slate-400 focus:border-[#184e77]"
                   />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-xs font-black text-[#172033]">Checklist Questions</label>
+                  <textarea
+                    rows={5}
+                    value={form.screeningQuestions}
+                    onChange={(e) => setForm({ ...form, screeningQuestions: e.target.value })}
+                    placeholder={"Do you have 2+ years experience?\nWhat is your expected salary?\nWhen can you resume?"}
+                    className="w-full resize-none rounded-xl border border-[#dbe4ef] bg-white px-4 py-2.5 text-sm text-[#172033] outline-none placeholder:text-slate-400 focus:border-[#184e77]"
+                  />
+                  <p className="mt-1 text-[11px] text-slate-400">One question per line. Applicants must answer these before submitting.</p>
                 </div>
               </div>
             </div>
@@ -585,13 +867,17 @@ const JobManagementPage = () => {
   const deleteJob = useDeleteJobMutation();
   const createRotationalMeta = useCreateRotationalJobMetaMutation();
   const jobs = useMemo(() => jobsQuery.data ?? [], [jobsQuery.data]);
+  const locationOptions = useMemo(
+    () => ["All Locations", ...Array.from(new Set(jobs.map((job) => job.lga || job.location).filter(Boolean)))],
+    [jobs],
+  );
 
   /* Filtering */
   const filtered = jobs.filter((j) => {
     const q = search.toLowerCase();
     const matchQ   = !q || j.title.toLowerCase().includes(q) || j.subject?.toLowerCase().includes(q);
     const matchS   = subject  === "All Subjects"  || j.subject  === subject;
-    const matchL   = location === "All Locations" || j.location === location;
+    const matchL   = location === "All Locations" || j.lga === location || j.location === location;
     const matchLvl = level    === "All Levels"    || j.level    === level;
     return matchQ && matchS && matchL && matchLvl;
   });
@@ -717,7 +1003,7 @@ const JobManagementPage = () => {
             onChange={(e) => { setLocation(e.target.value); setPage(1); }}
             className="rounded-xl border border-[#dbe4ef] bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-slate-600 outline-none focus:border-[#184e77]"
           >
-            {LOCATIONS.map((l) => <option key={l}>{l}</option>)}
+            {locationOptions.map((l) => <option key={l}>{l}</option>)}
           </select>
 
           {/* Level */}

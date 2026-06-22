@@ -7,6 +7,7 @@ import {
   Clock,
   GraduationCap,
   MapPin,
+  Navigation,
   Search,
   Send,
   SlidersHorizontal,
@@ -18,10 +19,26 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Link as RouterLink } from "react-router-dom";
 import TeacherHeader from "../components/TeacherHeader";
+import ProximityJobGroups from "../components/ProximityJobGroups";
+import JobsHero from "../components/JobsHero";
 import { useSavedJobs } from "../lib/useSavedJobs";
-import { useApplyToJobMutation } from "../services/mutation";
-import { useFetchJobs, useFetchMyApplications } from "../services/queries";
+import { useGeolocation } from "../lib/useGeolocation";
+import { useApplyToJobMutation, useSetMyGeoMutation } from "../services/mutation";
+import {
+  useFetchJobs,
+  useFetchMyApplications,
+  useFetchMyTeacherProfile,
+  useFetchNearbyJobs,
+} from "../services/queries";
 import type { Job } from "../types/TypeChecks";
+
+const DISTANCE_OPTIONS = [
+  { label: "Any distance", value: 0 },
+  { label: "Within 5 km", value: 5 },
+  { label: "Within 15 km", value: 15 },
+  { label: "Within 30 km", value: 30 },
+  { label: "Within 50 km", value: 50 },
+] as const;
 
 const ALL_SUBJECTS = [
   "All Subjects",
@@ -69,8 +86,10 @@ const TYPE_COLORS: Record<string, string> = {
 type ApplyModalProps = {
   job: Job | null;
   coverLetter: string;
+  screeningAnswers: Record<string, string>;
   isApplying: boolean;
   onCoverLetterChange: (value: string) => void;
+  onScreeningAnswerChange: (question: string, answer: string) => void;
   onClose: () => void;
   onSubmit: () => void;
 };
@@ -78,8 +97,10 @@ type ApplyModalProps = {
 const ApplyModal = ({
   job,
   coverLetter,
+  screeningAnswers,
   isApplying,
   onCoverLetterChange,
+  onScreeningAnswerChange,
   onClose,
   onSubmit,
 }: ApplyModalProps) => {
@@ -93,8 +114,8 @@ const ApplyModal = ({
         className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <section className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/20">
-        <div className="bg-[#184e77] px-6 py-5 text-white">
+      <section className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/20">
+        <div className="shrink-0 bg-[#184e77] px-6 py-5 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs text-white/65">Application</p>
@@ -113,7 +134,7 @@ const ApplyModal = ({
           </div>
         </div>
 
-        <div className="grid gap-5 p-6">
+        <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-6">
           <div className="grid gap-3 sm:grid-cols-3">
             {[
               { label: "Subject", value: job.subject ?? "Not set" },
@@ -146,9 +167,27 @@ const ApplyModal = ({
               className="w-full resize-none rounded-xl border border-[#dbe4ef] bg-white px-4 py-3 text-sm font-normal text-[#172033] outline-none placeholder:text-slate-400 focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
             />
           </label>
+
+          {(job.screeningQuestions?.length ?? 0) > 0 && (
+            <div className="grid gap-3">
+              <p className="text-sm font-black text-[#172033]">School Checklist</p>
+              {job.screeningQuestions?.map((item) => (
+                <label key={item.question} className="grid gap-1.5 text-sm font-semibold text-[#172033]">
+                  {item.question}
+                  <input
+                    type={item.type === "NUMBER" ? "number" : "text"}
+                    value={screeningAnswers[item.question] ?? ""}
+                    onChange={(e) => onScreeningAnswerChange(item.question, e.target.value)}
+                    placeholder="Your answer"
+                    className="h-10 rounded-xl border border-[#dbe4ef] bg-white px-4 text-sm font-normal text-[#172033] outline-none placeholder:text-slate-400 focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
+                  />
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-[#dbe4ef] bg-[#f8fafc] px-6 py-4">
+        <div className="flex shrink-0 justify-end gap-3 border-t border-[#dbe4ef] bg-[#f8fafc] px-6 py-4">
           <button
             type="button"
             onClick={onClose}
@@ -179,10 +218,57 @@ const JobListings = () => {
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
   const [applyingJob, setApplyingJob] = useState<Job | null>(null);
   const [coverLetter, setCoverLetter] = useState("");
+  const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({});
   const { toggleSavedJob, isSavedJob } = useSavedJobs();
   const jobsQuery = useFetchJobs();
   const myApplicationsQuery = useFetchMyApplications();
   const applyToJob = useApplyToJobMutation();
+
+  // ── Proximity / "near me" mode ──────────────────────────────────
+  const [nearMode, setNearMode] = useState(false);
+  const [maxKm, setMaxKm] = useState<number>(0);
+  const [gpsPoint, setGpsPoint] = useState<{ lat: number; lng: number } | null>(null);
+  const profileQuery = useFetchMyTeacherProfile();
+  const profile = profileQuery.data;
+  const geo = useGeolocation();
+  const setMyGeo = useSetMyGeoMutation();
+
+  const profilePoint =
+    profile?.lat != null && profile?.lng != null
+      ? { lat: profile.lat, lng: profile.lng }
+      : null;
+  const activePoint = gpsPoint ?? profilePoint;
+  const usingGps = !!gpsPoint || profile?.geoSource === "GPS";
+  const nearbyQuery = useFetchNearbyJobs(nearMode ? activePoint : null, {
+    maxKm: maxKm || undefined,
+  });
+  const nearbyJobs = useMemo(() => nearbyQuery.data ?? [], [nearbyQuery.data]);
+
+  const captureExactLocation = async () => {
+    const c = await geo.request();
+    if (c) {
+      setGpsPoint({ lat: c.lat, lng: c.lng });
+      setMyGeo.mutate({ lat: c.lat, lng: c.lng, accuracyM: c.accuracyM });
+    } else if (geo.status === "denied") {
+      toast("Location permission denied — using your saved area instead");
+    }
+  };
+
+  const enableNearMode = async () => {
+    setNearMode(true);
+    if (!activePoint) await captureExactLocation();
+  };
+
+  const locationLabel = usingGps
+    ? "your current location"
+    : profile?.location && profile.location !== "Not set"
+      ? profile.location
+      : "your saved area";
+  const accuracyNote = usingGps
+    ? "Live GPS"
+    : profilePoint
+      ? "Approx. from your area"
+      : undefined;
   const jobs = useMemo(() => jobsQuery.data ?? [], [jobsQuery.data]);
   const appliedJobIds = useMemo(
     () => new Set([...(myApplicationsQuery.data ?? []).map((app) => app.jobId), ...appliedJobs]),
@@ -207,7 +293,7 @@ const JobListings = () => {
       const matchesSubject =
         subject === "All Subjects" || job.subject === subject;
       const matchesLocation =
-        location === "All Locations" || job.location === location;
+        location === "All Locations" || job.location === location || job.lga === location;
       const matchesLevel = level === "All Levels" || job.level === level;
       return matchesSearch && matchesSubject && matchesLocation && matchesLevel;
     });
@@ -219,18 +305,34 @@ const JobListings = () => {
       return;
     }
     setCoverLetter(`Dear ${job.institutionName ?? "Hiring Team"},\n\nI am interested in the ${job.title} role. I believe my teaching experience and subject knowledge make me a strong fit for this position.\n\nThank you for considering my application.`);
+    setScreeningAnswers({});
     setApplyingJob(job);
   };
 
   const submitApplication = () => {
     if (!applyingJob) return;
+    const missingQuestion = applyingJob.screeningQuestions?.find(
+      (item) => item.required && !screeningAnswers[item.question]?.trim(),
+    );
+    if (missingQuestion) {
+      toast(`Answer required: ${missingQuestion.question}`);
+      return;
+    }
     applyToJob.mutate(
-      { jobId: applyingJob._id, coverLetter },
+      {
+        jobId: applyingJob._id,
+        coverLetter,
+        screeningAnswers: (applyingJob.screeningQuestions ?? []).map((item) => ({
+          question: item.question,
+          answer: screeningAnswers[item.question] ?? "",
+        })),
+      },
       {
         onSuccess: () => {
           setAppliedJobs((current) => current.includes(applyingJob._id) ? current : [...current, applyingJob._id]);
           setApplyingJob(null);
           setCoverLetter("");
+          setScreeningAnswers({});
         },
       },
     );
@@ -247,12 +349,14 @@ const JobListings = () => {
   const regularJobs = filteredJobs.filter((j) => !j.featured);
 
   return (
-    <main className="min-h-screen bg-[#f6f8fb] text-[#172033]">
+    <main className="flex min-h-screen flex-col bg-[#f6f8fb] text-[#172033]">
       <ApplyModal
         job={applyingJob}
         coverLetter={coverLetter}
+        screeningAnswers={screeningAnswers}
         isApplying={applyToJob.isPending}
         onCoverLetterChange={setCoverLetter}
+        onScreeningAnswerChange={(question, answer) => setScreeningAnswers((current) => ({ ...current, [question]: answer }))}
         onClose={() => setApplyingJob(null)}
         onSubmit={submitApplication}
       />
@@ -260,50 +364,14 @@ const JobListings = () => {
       {/* ── NAV ───────────────────────────────────────────────── */}
       <TeacherHeader active="jobs" />
 
-      {/* ── HERO ──────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#184e77] via-[#1a6091] to-[#287271]">
-        <div className="pointer-events-none absolute -right-32 -top-32 size-[480px] rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute -bottom-20 -left-20 size-[320px] rounded-full bg-white/5" />
-        <div className="pointer-events-none absolute right-1/4 top-1/2 size-64 -translate-y-1/2 rounded-full bg-[#287271]/20 blur-3xl" />
-
-        <div className="relative mx-auto w-full max-w-screen-xl px-6 py-16 md:py-20">
-          <div className="max-w-2xl">
-            <span className="mb-5 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[#7dd3fc] ring-1 ring-white/20">
-              <Sparkles size={13} />
-              Teaching Opportunities
-            </span>
-            <h1 className="text-4xl font-black leading-tight text-white md:text-5xl">
-              Explore Teaching{" "}
-              <span className="text-[#7dd3fc]">Opportunities</span>
-            </h1>
-            <p className="mt-4 max-w-lg text-base leading-7 text-white/70">
-              Find your ideal teaching position by browsing available jobs
-              filtered by subject and location. Apply directly and take the
-              next step in your teaching career.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 ring-1 ring-white/15">
-                <BriefcaseBusiness size={16} className="text-[#7dd3fc]" />
-                <span className="text-sm font-bold text-white">
-                  {jobs.length}+ Jobs Available
-                </span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 ring-1 ring-white/15">
-                <MapPin size={16} className="text-[#7dd3fc]" />
-                <span className="text-sm font-bold text-white">
-                  6 Locations
-                </span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 ring-1 ring-white/15">
-                <GraduationCap size={16} className="text-[#7dd3fc]" />
-                <span className="text-sm font-bold text-white">
-                  {new Set(jobs.map((job) => job.institutionName).filter(Boolean)).size} Schools Hiring
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* ── HERO (dismissible image carousel) ─────────────────── */}
+      <JobsHero
+        jobsCount={jobs.length}
+        locationsCount={6}
+        schoolsCount={
+          new Set(jobs.map((job) => job.institutionName).filter(Boolean)).size
+        }
+      />
 
       {/* ── FILTER BAR ────────────────────────────────────────── */}
       <section className="sticky top-16 z-30 border-b border-[#dbe4ef] bg-white shadow-sm shadow-slate-900/[0.04]">
@@ -377,19 +445,102 @@ const JobListings = () => {
               </button>
             )}
 
+            {/* Near-me toggle */}
+            <button
+              onClick={() => (nearMode ? setNearMode(false) : enableNearMode())}
+              className={`flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-bold transition ${
+                nearMode
+                  ? "border-[#184e77] bg-[#184e77] text-white"
+                  : "border-[#dbe4ef] bg-white text-[#184e77] hover:border-[#184e77]/40 hover:bg-[#e0f2fe]"
+              }`}
+            >
+              <Navigation size={14} />
+              {nearMode ? "Nearby: on" : "Jobs near me"}
+            </button>
+
+            {nearMode && (
+              <div className="relative">
+                <select
+                  value={maxKm}
+                  onChange={(e) => setMaxKm(Number(e.target.value))}
+                  className="h-11 appearance-none rounded-xl border border-[#dbe4ef] bg-[#f8fafc] pl-4 pr-9 text-sm font-medium outline-none transition focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10"
+                >
+                  {DISTANCE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            )}
+
             <span className="ml-auto hidden text-sm font-semibold text-slate-500 md:block">
-              <span className="font-black text-[#184e77]">{filteredJobs.length}</span>{" "}
-              {filteredJobs.length === 1 ? "role" : "roles"} found
+              <span className="font-black text-[#184e77]">
+                {nearMode ? nearbyJobs.length : filteredJobs.length}
+              </span>{" "}
+              {(nearMode ? nearbyJobs.length : filteredJobs.length) === 1
+                ? "role"
+                : "roles"}{" "}
+              found
             </span>
           </div>
         </div>
       </section>
 
       {/* ── MAIN CONTENT ──────────────────────────────────────── */}
-      <div className="mx-auto w-full max-w-screen-xl px-6 py-10">
+      <div className="mx-auto w-full max-w-screen-xl flex-1 px-6 py-10">
+
+        {/* Proximity (near-me) view */}
+        {nearMode && (
+          <div className="mb-2">
+            <div className="mb-5 flex items-center gap-2">
+              <Navigation size={16} className="text-[#184e77]" />
+              <h2 className="text-lg font-black text-[#172033]">Jobs grouped by distance</h2>
+            </div>
+            {!activePoint ? (
+              <div className="rounded-2xl border border-dashed border-[#dbe4ef] bg-white py-16 text-center">
+                <div className="mx-auto mb-4 grid size-14 place-items-center rounded-full bg-[#f0f7ff]">
+                  <Navigation size={22} className="text-[#184e77]/40" />
+                </div>
+                <h3 className="text-base font-black text-[#172033]">
+                  {geo.status === "locating"
+                    ? "Finding your location…"
+                    : "Share your location to see nearby roles"}
+                </h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
+                  We'll group open roles by how far they are from you. You can also
+                  set your area in your profile.
+                </p>
+                <button
+                  onClick={captureExactLocation}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#184e77] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1a6091]"
+                >
+                  <Navigation size={14} />
+                  Use my location
+                </button>
+              </div>
+            ) : nearbyQuery.isLoading ? (
+              <div className="rounded-2xl border border-dashed border-[#dbe4ef] bg-white py-16 text-center text-sm font-semibold text-slate-500">
+                Finding roles near you…
+              </div>
+            ) : (
+              <ProximityJobGroups
+                jobs={nearbyJobs}
+                locationLabel={locationLabel}
+                accuracyNote={accuracyNote}
+                appliedJobIds={appliedJobIds}
+                isSavedJob={isSavedJob}
+                onToggleSave={toggleSavedJob}
+                onApply={openApply}
+                onRefineLocation={usingGps ? undefined : captureExactLocation}
+              />
+            )}
+          </div>
+        )}
 
         {/* Active filter pills */}
-        {hasFilters && (
+        {!nearMode && hasFilters && (
           <div className="mb-6 flex flex-wrap items-center gap-2">
             <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-500">
               <SlidersHorizontal size={14} />
@@ -423,7 +574,7 @@ const JobListings = () => {
         )}
 
         {/* Featured jobs section */}
-        {!hasFilters && featuredJobs.length > 0 && (
+        {!nearMode && !hasFilters && featuredJobs.length > 0 && (
           <div className="mb-10">
             <div className="mb-5 flex items-center gap-2">
               <Sparkles size={16} className="text-[#184e77]" />
@@ -446,6 +597,7 @@ const JobListings = () => {
         )}
 
         {/* All / filtered jobs */}
+        {!nearMode && (
         <div>
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-lg font-black text-[#172033]">
@@ -495,6 +647,7 @@ const JobListings = () => {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}

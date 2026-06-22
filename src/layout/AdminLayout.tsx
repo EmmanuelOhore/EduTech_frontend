@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
-  Bell,
   BookOpen,
   BriefcaseBusiness,
   CalendarDays,
   ClipboardList,
+  CreditCard,
   LayoutDashboard,
   LogOut,
   MapPin,
@@ -17,7 +17,15 @@ import {
   X,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
-import { useFetchInstitutionApplications } from "../services/queries";
+import { useFetchInstitutionApplications, useFetchInstitution } from "../services/queries";
+import NotificationBell from "../components/NotificationBell";
+
+const PLAN_LABELS: Record<string, string> = {
+  NONE: "No plan",
+  BASIC: "Basic",
+  ENTERPRISE: "Enterprise",
+  PRO: "PRO",
+};
 
 type NavItem = {
   label: string;
@@ -30,10 +38,11 @@ const baseNavItems: NavItem[] = [
   { label: "Dashboard",          icon: LayoutDashboard,   path: "/school/dashboard" },
   { label: "Job Management",     icon: BriefcaseBusiness, path: "/school/jobs" },
   { label: "Rotational Sessions",icon: CalendarDays,      path: "/school/sessions" },
-  { label: "Teacher Profiles",   icon: Users,             path: "/school/teachers" },
+  { label: "Staff Profiles",     icon: Users,             path: "/school/teachers" },
   { label: "Applications",       icon: ClipboardList,     path: "/school/applications" },
   { label: "Statistics",         icon: BarChart3,         path: "/school/statistics" },
-  { label: "Teacher References", icon: BookOpen,          path: "/school/references" },
+  { label: "Staff References",   icon: BookOpen,          path: "/school/references" },
+  { label: "Service Plan",       icon: CreditCard,        path: "/school/plans" },
   { label: "School Management",  icon: School,            path: "/school/profile" },
 ];
 
@@ -43,6 +52,8 @@ const Sidebar = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const { logout, auth } = useAuth();
   const institutionId = auth?.institution?.id;
   const applicationsQuery = useFetchInstitutionApplications(institutionId);
+  const { data: institution } = useFetchInstitution(institutionId);
+  const planLabel = PLAN_LABELS[institution?.planType ?? "NONE"];
   const pendingApplications = (applicationsQuery.data ?? []).filter((application) => application.status === "PENDING").length;
   const navItems: NavItem[] = baseNavItems.map((item) =>
     item.path === "/school/applications"
@@ -168,10 +179,18 @@ const Sidebar = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
                 {(auth?.institution?.name ?? "School").charAt(0).toUpperCase()}
               </div>
             )}
-            <div className="min-w-0">
-              <p className="truncate text-xs font-black text-[#172033]">
-                {auth?.institution?.name ?? "School"}
-              </p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-1">
+                <p className="truncate text-xs font-black text-[#172033]">
+                  {auth?.institution?.name ?? "School"}
+                </p>
+                <Link
+                  to="/school/plans"
+                  className="shrink-0 rounded-full bg-[#287271]/10 px-2 py-0.5 text-[9px] font-black text-[#287271] transition hover:bg-[#287271]/20"
+                >
+                  {planLabel}
+                </Link>
+              </div>
               <p className="flex items-center gap-1 truncate text-[10px] text-slate-400">
                 <MapPin size={9} /> {auth?.institution?.location ?? "Location"} · {institutionType}
               </p>
@@ -226,10 +245,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <button className="relative grid size-9 place-items-center rounded-xl border border-[#dbe4ef] text-slate-500 transition hover:bg-[#f0f7ff] hover:border-[#184e77]/30 hover:text-[#184e77]">
-              <Bell size={16} />
-              <span className="absolute right-2 top-2 size-2 rounded-full bg-red-400 ring-2 ring-white" />
-            </button>
+            <NotificationBell />
             <button
               type="button"
               onClick={() => navigate("/school/profile")}

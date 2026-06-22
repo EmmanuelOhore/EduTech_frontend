@@ -23,6 +23,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   profile: TeacherProfile | undefined;
+  /** Which tab to open on. Defaults to "personal". */
+  initialTab?: Tab;
 }
 
 /* ─── helpers ──────────────────────────────────────────────────── */
@@ -31,6 +33,20 @@ const LEVELS = [
   { value: "INTERMEDIATE", label: "Intermediate", desc: "3–6 years of experience" },
   { value: "EXPERT", label: "Expert", desc: "7+ years of experience" },
 ] as const;
+
+const TEACHING_LEVELS = [
+  { value: "PRIMARY", label: "Primary" },
+  { value: "SECONDARY", label: "Secondary" },
+  { value: "TERTIARY", label: "Tertiary" },
+] as const;
+
+// Common subjects offered to teachers. Adding one not listed is supported via the input.
+const SUBJECT_OPTIONS = [
+  "Mathematics", "English", "Physics", "Chemistry", "Biology", "Economics",
+  "Computer Science", "Further Mathematics", "Geography", "History", "Government",
+  "Literature in English", "Agricultural Science", "French", "Civic Education",
+  "Commerce", "Accounting", "Fine Art", "Music", "Physical Education",
+];
 
 const Field = ({
   label,
@@ -52,8 +68,8 @@ const inputCls =
   "w-full rounded-xl border border-[#dbe4ef] bg-[#f8fafc] px-3.5 py-2.5 text-sm text-[#172033] outline-none transition placeholder:text-slate-400 focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10";
 
 /* ─── component ────────────────────────────────────────────────── */
-const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
-  const [tab, setTab] = useState<Tab>("personal");
+const EditProfileDrawer = ({ open, onClose, profile, initialTab = "personal" }: Props) => {
+  const [tab, setTab] = useState<Tab>(initialTab);
 
   /* personal */
   const [firstName, setFirstName] = useState("");
@@ -63,6 +79,9 @@ const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
   /* teaching */
   const [location, setLocation] = useState("");
   const [level, setLevel] = useState<"BEGINNER" | "INTERMEDIATE" | "EXPERT">("BEGINNER");
+  const [teachingLevel, setTeachingLevel] = useState<"PRIMARY" | "SECONDARY" | "TERTIARY" | "">("");
+  const [subjects, setSubjects] = useState<string[]>([]); // ordered = ranked
+  const [subjectInput, setSubjectInput] = useState("");
   const [bio, setBio] = useState("");
   const [certificateUrl, setCertificateUrl] = useState("");
   const [ninDocumentUrl, setNinDocumentUrl] = useState("");
@@ -86,12 +105,23 @@ const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
 
   /* sync profile into form when drawer opens */
   useEffect(() => {
+    if (open) setTab(initialTab);
+  }, [open, initialTab]);
+
+  useEffect(() => {
     if (open && profile) {
       setFirstName(profile.firstName ?? "");
       setLastName(profile.lastName ?? "");
       setProfileImage(profile.profileImage ?? "");
       setLocation(profile.location ?? "");
       setLevel(profile.level ?? "BEGINNER");
+      setTeachingLevel(profile.teachingLevel ?? "");
+      setSubjects(
+        [...(profile.subjectExpertise ?? [])]
+          .sort((a, b) => a.rank - b.rank)
+          .map((s) => s.subject),
+      );
+      setSubjectInput("");
       setBio(profile.bio ?? "");
       setCertificateUrl(profile.certificateUrl ?? "");
       setNinDocumentUrl(profile.ninDocumentUrl ?? "");
@@ -113,8 +143,28 @@ const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  /* subjects: add / remove (order = rank) */
+  const addSubject = (raw: string) => {
+    const name = raw.trim();
+    if (!name) return;
+    setSubjects((curr) =>
+      curr.some((s) => s.toLowerCase() === name.toLowerCase()) ? curr : [...curr, name],
+    );
+    setSubjectInput("");
+  };
+  const removeSubject = (name: string) =>
+    setSubjects((curr) => curr.filter((s) => s !== name));
+
   /* save profile */
   const handleSaveProfile = () => {
+    // Include a subject still sitting in the input box (user typed/picked but
+    // didn't click "Add"), so nothing is silently dropped on save.
+    const pending = subjectInput.trim();
+    const finalSubjects =
+      pending && !subjects.some((s) => s.toLowerCase() === pending.toLowerCase())
+        ? [...subjects, pending]
+        : subjects;
+
     updateMutation.mutate(
       {
         firstName: firstName.trim() || undefined,
@@ -122,6 +172,8 @@ const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
         profileImage: profileImage.trim() || undefined,
         location: location.trim() || undefined,
         level,
+        teachingLevel: teachingLevel || undefined,
+        subjectExpertise: finalSubjects.map((subject, i) => ({ subject, rank: i + 1 })),
         bio: bio.trim() || undefined,
         certificateUrl: certificateUrl.trim() || undefined,
         ninDocumentUrl: ninDocumentUrl.trim() || undefined,
@@ -379,6 +431,73 @@ const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
                 </div>
               </Field>
 
+              <Field label="Teaching level" hint="The level of students you teach.">
+                <div className="grid grid-cols-3 gap-2">
+                  {TEACHING_LEVELS.map((tl) => (
+                    <button
+                      key={tl.value}
+                      type="button"
+                      onClick={() => setTeachingLevel((curr) => (curr === tl.value ? "" : tl.value))}
+                      className={`rounded-xl border px-3 py-2.5 text-center text-xs font-bold transition ${
+                        teachingLevel === tl.value
+                          ? "border-[#184e77] bg-[#eef6fb] text-[#184e77]"
+                          : "border-[#dbe4ef] bg-[#f8fafc] text-slate-500 hover:border-slate-300"
+                      }`}
+                    >
+                      {tl.label}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+
+              <Field label="Subject expertise" hint="Add the subjects you teach, most confident first. Order = priority.">
+                <div className="space-y-2.5">
+                  {subjects.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {subjects.map((s, i) => (
+                        <span
+                          key={s}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#eef6fb] px-2.5 py-1.5 text-xs font-semibold text-[#184e77] ring-1 ring-[#184e77]/15"
+                        >
+                          <span className="grid size-4 place-items-center rounded-full bg-[#184e77] text-[10px] font-bold text-white">{i + 1}</span>
+                          {s}
+                          <button type="button" onClick={() => removeSubject(s)} className="text-[#184e77]/60 transition hover:text-red-500">
+                            <X size={12} />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input
+                      list="subject-options"
+                      value={subjectInput}
+                      onChange={(e) => setSubjectInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addSubject(subjectInput);
+                        }
+                      }}
+                      placeholder="Type or pick a subject…"
+                      className={inputCls}
+                    />
+                    <datalist id="subject-options">
+                      {SUBJECT_OPTIONS.filter((o) => !subjects.includes(o)).map((o) => (
+                        <option key={o} value={o} />
+                      ))}
+                    </datalist>
+                    <button
+                      type="button"
+                      onClick={() => addSubject(subjectInput)}
+                      className="shrink-0 rounded-xl bg-[#184e77] px-4 text-sm font-bold text-white transition hover:bg-[#1a6091]"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
+              </Field>
+
               <Field label="Professional bio" hint="Max 500 characters. Describe your experience, subjects, and teaching style.">
                 <textarea
                   value={bio}
@@ -396,14 +515,14 @@ const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
                     <p className="text-sm font-semibold text-[#172033]">
                       {uploadingAsset === "certificate" ? "Uploading certificate..." : certificateUrl ? "Replace certificate" : "Upload certificate"}
                     </p>
-                    <p className="text-[11px] text-slate-400">{certificateUrl ? "Saved to your teacher profile" : "PDF, JPG, or PNG up to 8MB"}</p>
+                    <p className="text-[11px] text-slate-400">{certificateUrl ? "Saved to your teacher profile" : "JPG or PNG up to 8MB"}</p>
                   </div>
                   <span className="grid size-9 place-items-center rounded-xl bg-[#e0f2fe] text-[#184e77]">
                     <FileUp size={16} />
                   </span>
                   <input
                     type="file"
-                    accept=".pdf,.png,.jpg,.jpeg"
+                    accept=".png,.jpg,.jpeg,.webp"
                     className="sr-only"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
@@ -421,14 +540,14 @@ const EditProfileDrawer = ({ open, onClose, profile }: Props) => {
                     <p className="text-sm font-semibold text-[#172033]">
                       {uploadingAsset === "nin" ? "Uploading NIN document..." : ninDocumentUrl ? "Replace NIN document" : "Upload NIN document"}
                     </p>
-                    <p className="text-[11px] text-slate-400">{ninDocumentUrl ? "Saved to your teacher profile" : "PDF, JPG, or PNG up to 8MB"}</p>
+                    <p className="text-[11px] text-slate-400">{ninDocumentUrl ? "Saved to your teacher profile" : "JPG or PNG up to 8MB"}</p>
                   </div>
                   <span className="grid size-9 place-items-center rounded-xl bg-[#e0f2fe] text-[#184e77]">
                     <FileUp size={16} />
                   </span>
                   <input
                     type="file"
-                    accept=".pdf,.png,.jpg,.jpeg"
+                    accept=".png,.jpg,.jpeg,.webp"
                     className="sr-only"
                     onChange={(e) => {
                       const file = e.target.files?.[0];

@@ -47,7 +47,8 @@ const schoolType = [
 const initialValues: SchoolRegisterFormValues = {
   firstName: "", lastName: "", email: "", password: "",
   confirmPassword: "", schoolName: "", schoolLocation: "",
-  schoolType: "", phone: "", schoolLogoUrl: "", verificationDocumentUrl: "", agreeToTerms: false,
+  schoolType: "", phone: "", schoolLogoUrl: "", verificationDocumentUrl: "",
+  utilityBillUrl: "", authorizationLetterUrl: "", agreeToTerms: false,
 };
 
 const validationSchema = Yup.object({
@@ -63,6 +64,8 @@ const validationSchema = Yup.object({
   schoolType: Yup.string()
     .oneOf(["PRIMARY", "SECONDARY", "TERTIARY", "VOCATIONAL", "OTHER"])
     .required("Select school type"),
+  utilityBillUrl: Yup.string().required("Upload a recent utility bill"),
+  authorizationLetterUrl: Yup.string().required("Upload the authorization letter"),
   agreeToTerms: Yup.boolean().oneOf([true], "Accept the terms to continue"),
 });
 
@@ -106,8 +109,18 @@ const SchoolRegister = () => {
   const schoolRegister = useSchoolRegisterMutation();
   const uploadAsset = useUploadAssetMutation();
   const navigate = useNavigate();
-  const [schoolAssets, setSchoolAssets] = useState({ logo: "", verificationDocument: "" });
-  const [uploading, setUploading] = useState({ logo: false, verificationDocument: false });
+  const [schoolAssets, setSchoolAssets] = useState({
+    logo: "",
+    verificationDocument: "",
+    utilityBill: "",
+    authorizationLetter: "",
+  });
+  const [uploading, setUploading] = useState({
+    logo: false,
+    verificationDocument: false,
+    utilityBill: false,
+    authorizationLetter: false,
+  });
 
   return (
     <div className="flex min-h-screen bg-[#f6f8fb] text-[#172033]">
@@ -270,6 +283,8 @@ const SchoolRegister = () => {
                   phone: values.phone || undefined,
                   schoolLogoUrl: values.schoolLogoUrl || undefined,
                   verificationDocumentUrl: values.verificationDocumentUrl || undefined,
+                  utilityBillUrl: values.utilityBillUrl,
+                  authorizationLetterUrl: values.authorizationLetterUrl,
                 },
                 {
                   onSuccess: () => navigate("/school/dashboard", { replace: true }),
@@ -443,10 +458,80 @@ const SchoolRegister = () => {
                         {uploading.verificationDocument ? "Uploading..." : schoolAssets.verificationDocument || "Choose File"}
                       </span>
                     </label>
+                    <label
+                      className={`group flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[#b7c4d2] bg-[#f8fafc] p-8 text-center transition hover:border-[#184e77] hover:bg-[#e0f2fe]/30 ${uploading.utilityBill ? "pointer-events-none opacity-70" : ""}`}
+                    >
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        className="sr-only"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            setUploading((current) => ({ ...current, utilityBill: true }));
+                            const uploaded = await uploadAsset.mutateAsync({ file, category: "institution-verification-document" });
+                            setSchoolAssets((current) => ({ ...current, utilityBill: uploaded.originalName }));
+                            setFieldValue("utilityBillUrl", uploaded.url);
+                            toast.success("Utility bill uploaded");
+                          } catch {
+                            // toast handled in mutation
+                          } finally {
+                            setUploading((current) => ({ ...current, utilityBill: false }));
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                      <span className="grid size-12 place-items-center rounded-xl bg-[#e0f2fe] text-[#184e77] transition group-hover:bg-[#184e77] group-hover:text-white">
+                        <FileText size={20} />
+                      </span>
+                      <div>
+                        <p className="text-sm font-black text-[#184e77]">Recent Utility Bill</p>
+                        <p className="mt-1 text-xs text-slate-400">Required for school verification</p>
+                      </div>
+                      <span className="rounded-lg bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-[#dbe4ef]">
+                        {uploading.utilityBill ? "Uploading..." : schoolAssets.utilityBill || "Choose File"}
+                      </span>
+                    </label>
+                    <label
+                      className={`group flex w-full flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-[#b7c4d2] bg-[#f8fafc] p-8 text-center transition hover:border-[#184e77] hover:bg-[#e0f2fe]/30 ${uploading.authorizationLetter ? "pointer-events-none opacity-70" : ""}`}
+                    >
+                      <input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg"
+                        className="sr-only"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            setUploading((current) => ({ ...current, authorizationLetter: true }));
+                            const uploaded = await uploadAsset.mutateAsync({ file, category: "institution-verification-document" });
+                            setSchoolAssets((current) => ({ ...current, authorizationLetter: uploaded.originalName }));
+                            setFieldValue("authorizationLetterUrl", uploaded.url);
+                            toast.success("Authorization letter uploaded");
+                          } catch {
+                            // toast handled in mutation
+                          } finally {
+                            setUploading((current) => ({ ...current, authorizationLetter: false }));
+                            e.target.value = "";
+                          }
+                        }}
+                      />
+                      <span className="grid size-12 place-items-center rounded-xl bg-[#e0f2fe] text-[#184e77] transition group-hover:bg-[#184e77] group-hover:text-white">
+                        <ShieldCheck size={20} />
+                      </span>
+                      <div>
+                        <p className="text-sm font-black text-[#184e77]">Letter of Authorization</p>
+                        <p className="mt-1 text-xs text-slate-400">Required from the school owner or principal</p>
+                      </div>
+                      <span className="rounded-lg bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm ring-1 ring-[#dbe4ef]">
+                        {uploading.authorizationLetter ? "Uploading..." : schoolAssets.authorizationLetter || "Choose File"}
+                      </span>
+                    </label>
                   </div>
                   <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400">
                     <CheckCircle2 size={12} className="text-emerald-400" />
-                    You can complete institution verification after account creation
+                    Utility bill and authorization letter are required before account creation.
                   </p>
                 </div>
 

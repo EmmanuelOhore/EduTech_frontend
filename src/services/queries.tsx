@@ -8,6 +8,67 @@ export const useFetchJobs = () => {
   });
 };
 
+// Proximity job feed — only runs when a valid point is supplied.
+export const useFetchNearbyJobs = (
+  point: { lat: number; lng: number } | null,
+  opts: { maxKm?: number } = {},
+) => {
+  return useQuery({
+    queryKey: ["jobs", "near", point?.lat, point?.lng, opts.maxKm ?? null],
+    queryFn: () =>
+      api.fetchNearbyJobs({ lat: point!.lat, lng: point!.lng, maxKm: opts.maxKm }),
+    enabled: !!point,
+  });
+};
+
+// School-side: teachers ranked by proximity to a school.
+export const useFetchNearbyTeachers = (
+  institutionId?: string,
+  params: { maxKm?: number; teachingLevel?: string; kycStatus?: string } = {},
+) => {
+  return useQuery({
+    queryKey: ["nearby-teachers", institutionId, params],
+    queryFn: () => api.fetchNearbyTeachers(institutionId!, params),
+    enabled: !!institutionId,
+  });
+};
+
+export const useFetchJobTemplates = (enabled = true) => {
+  return useQuery({
+    queryKey: ["job-templates"],
+    queryFn: api.fetchJobTemplates,
+    enabled,
+  });
+};
+
+// Notifications — polled for near-real-time badge/list updates.
+export const useFetchNotifications = (enabled = true) => {
+  return useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api.fetchNotifications(30),
+    enabled,
+    refetchInterval: 20000, // poll every 20s
+    refetchOnWindowFocus: true,
+  });
+};
+
+// Replacements
+export const useFetchReplacements = (status?: string, enabled = true) => {
+  return useQuery({
+    queryKey: ["replacements", status ?? "all"],
+    queryFn: () => api.fetchReplacements(status),
+    enabled,
+  });
+};
+
+export const useFetchReplacementCandidates = (id?: string) => {
+  return useQuery({
+    queryKey: ["replacement-candidates", id],
+    queryFn: () => api.fetchReplacementCandidates(id!),
+    enabled: Boolean(id),
+  });
+};
+
 export const useFetchJob = (id?: string) => {
   return useQuery({
     queryKey: ["jobs", id],
@@ -29,6 +90,41 @@ export const useFetchInstitution = (institutionId?: string) => {
     queryKey: ["institution", institutionId],
     queryFn: () => api.fetchInstitution(institutionId!),
     enabled: Boolean(institutionId),
+  });
+};
+
+export const useFetchAllInstitutions = () => {
+  return useQuery({
+    queryKey: ["institutions"],
+    queryFn: api.fetchAllInstitutions,
+  });
+};
+
+export const useFetchAllTeachers = () => {
+  return useQuery({
+    queryKey: ["teachers"],
+    queryFn: api.fetchAllTeachers,
+  });
+};
+
+export const useFetchAllApplications = () => {
+  return useQuery({
+    queryKey: ["applications", "all"],
+    queryFn: api.fetchAllApplications,
+  });
+};
+
+export const useFetchSubjects = () => {
+  return useQuery({
+    queryKey: ["subjects"],
+    queryFn: api.fetchSubjects,
+  });
+};
+
+export const useFetchTestDataSummary = () => {
+  return useQuery({
+    queryKey: ["admin-tools", "test-data"],
+    queryFn: api.fetchTestDataSummary,
   });
 };
 
@@ -67,11 +163,27 @@ export const useFetchMyTeacherProfile = (enabled = true) => {
   });
 };
 
+export const useFetchMyProfileViews = (enabled = true) => {
+  return useQuery({
+    queryKey: ["profile-views", "my"],
+    queryFn: api.fetchMyProfileViews,
+    enabled,
+  });
+};
+
 export const useFetchTeacherProfile = (teacherId?: string) => {
   return useQuery({
     queryKey: ["teacher-profile", teacherId],
     queryFn: () => api.fetchTeacherProfile(teacherId!),
     enabled: Boolean(teacherId),
+  });
+};
+
+export const useFetchPublicStaffProfile = (slug?: string) => {
+  return useQuery({
+    queryKey: ["staff-profile", "public", slug],
+    queryFn: () => api.fetchPublicStaffProfile(slug!),
+    enabled: Boolean(slug),
   });
 };
 
@@ -152,5 +264,31 @@ export const useFetchAssignmentsByJob = (jobId?: string) => {
     queryKey: ["assignments", "job", jobId],
     queryFn: () => api.fetchAssignmentsByJob(jobId!),
     enabled: Boolean(jobId),
+  });
+};
+
+// ── Guarantors / KYC ──────────────────────────────────────────────
+export const useFetchMyGuarantors = (enabled = true) => {
+  return useQuery({
+    queryKey: ["guarantors", "my"],
+    queryFn: api.fetchMyGuarantors,
+    enabled,
+  });
+};
+
+export const useFetchGuarantorByToken = (token?: string) => {
+  return useQuery({
+    queryKey: ["guarantor", "portal", token],
+    queryFn: () => api.fetchGuarantorByToken(token!),
+    enabled: Boolean(token),
+  });
+};
+
+export const useFetchAdminGuarantors = (
+  status?: import("../types/TypeChecks").GuarantorStatus,
+) => {
+  return useQuery({
+    queryKey: ["guarantors", "admin", status ?? "all"],
+    queryFn: () => api.fetchAdminGuarantors(status),
   });
 };

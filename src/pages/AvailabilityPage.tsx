@@ -54,6 +54,13 @@ export default function AvailabilityPage() {
   const [editDay, setEditDay] = useState<DayOfWeek | null>(null);
   const [form, setForm] = useState<AvailForm | null>(null);
 
+  // Quick-set bar
+  const [quickStart, setQuickStart] = useState("08:00");
+  const [quickEnd, setQuickEnd] = useState("16:00");
+  const [quickDays, setQuickDays] = useState<Set<DayOfWeek>>(
+    new Set(["MON", "TUE", "WED", "THU", "FRI"]),
+  );
+
   const availability: TeacherAvailability[] = availQuery.data ?? [];
   const byDay = new Map(availability.map(a => [a.dayOfWeek, a]));
   const setDays = availability.length;
@@ -82,6 +89,26 @@ export default function AvailabilityPage() {
     deleteMutation.mutate(id, { onSuccess: () => setEditDay(null) });
   };
 
+  const toggleQuickDay = (day: DayOfWeek) =>
+    setQuickDays((prev) => {
+      const next = new Set(prev);
+      next.has(day) ? next.delete(day) : next.add(day);
+      return next;
+    });
+
+  const handleQuickApply = () => {
+    if (quickStart >= quickEnd) { toast.error("End time must be after start time"); return; }
+    if (quickDays.size === 0) { toast.error("Pick at least one day"); return; }
+    const slots = [...quickDays].map((day) => ({
+      dayOfWeek: day,
+      startTime: quickStart,
+      endTime: quickEnd,
+      availableForWeekend: day === "SAT" || day === "SUN",
+      availableForEvening: quickEnd > "17:00",
+    }));
+    upsertMutation.mutate({ slots });
+  };
+
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#172033]">
       <TeacherHeader active="availability" />
@@ -106,6 +133,53 @@ export default function AvailabilityPage() {
       </section>
 
       <div className="mx-auto w-full max-w-screen-xl px-6 py-8">
+        {/* Quick set bar */}
+        <div className="mb-6 rounded-2xl border border-[#dbe4ef] bg-white p-5 shadow-sm">
+          <p className="text-sm font-bold text-[#172033]">Quick set</p>
+          <p className="mb-4 text-xs text-slate-500">Set a time range once and apply it to several days at once.</p>
+          <div className="flex flex-wrap items-end gap-4">
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">Start</label>
+              <input type="time" value={quickStart} onChange={(e) => setQuickStart(e.target.value)} className="rounded-xl border border-[#dbe4ef] px-3 py-2.5 text-sm focus:border-teal-400 focus:outline-none" />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-slate-600">End</label>
+              <input type="time" value={quickEnd} onChange={(e) => setQuickEnd(e.target.value)} className="rounded-xl border border-[#dbe4ef] px-3 py-2.5 text-sm focus:border-teal-400 focus:outline-none" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                <label className="text-xs font-semibold text-slate-600">Apply to days</label>
+                <button type="button" onClick={() => setQuickDays(new Set(["MON","TUE","WED","THU","FRI"]))} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 hover:bg-slate-200">Weekdays</button>
+                <button type="button" onClick={() => setQuickDays(new Set(DAYS.map(d => d.key)))} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold text-slate-600 hover:bg-slate-200">All days</button>
+                <button type="button" onClick={() => setQuickDays(new Set())} className="rounded-full px-2.5 py-0.5 text-[11px] font-bold text-slate-400 hover:text-slate-600">Clear</button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {DAYS.map((d) => {
+                  const on = quickDays.has(d.key);
+                  return (
+                    <button
+                      key={d.key}
+                      type="button"
+                      onClick={() => toggleQuickDay(d.key)}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-bold transition ${on ? "bg-teal-600 text-white" : "border border-[#dbe4ef] bg-white text-slate-500 hover:border-teal-300"}`}
+                    >
+                      {d.short}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleQuickApply}
+              disabled={upsertMutation.isPending}
+              className="rounded-xl bg-[#184e77] px-5 py-2.5 text-sm font-bold text-white transition hover:bg-[#1a6091] disabled:opacity-60"
+            >
+              {upsertMutation.isPending ? "Saving…" : `Apply to ${quickDays.size} day${quickDays.size === 1 ? "" : "s"}`}
+            </button>
+          </div>
+        </div>
+
         {availQuery.isLoading ? (
           <div className="rounded-2xl border border-[#dbe4ef] bg-white px-6 py-16 text-center text-sm text-slate-400">Loading availability...</div>
         ) : (

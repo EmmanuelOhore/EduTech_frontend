@@ -14,7 +14,6 @@ import {
   Search,
   ShieldCheck,
   ShieldX,
-  Star,
   User,
   UserCheck,
   Users,
@@ -90,15 +89,11 @@ const ViewModal = ({
         onClick={onClose}
       />
 
-      <section className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/30">
+      <section className="relative isolate flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/30">
 
         {/* ── Header ───────────────────────────────────────────────── */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-[#184e77] via-[#1a6091] to-[#287271] px-6 py-6 text-white">
-          {/* Decorative circles */}
-          <div className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-white/[0.04]" />
-          <div className="pointer-events-none absolute -bottom-8 right-20 size-28 rounded-full bg-white/[0.04]" />
-
-          <div className="relative flex items-start justify-between gap-4">
+        <div className="relative rounded-t-2xl bg-gradient-to-r from-[#184e77] to-[#216a78] px-6 py-5 text-white">
+          <div className="relative flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
               {/* Avatar */}
               <div className="relative shrink-0">
@@ -148,7 +143,7 @@ const ViewModal = ({
           <div className="flex w-72 shrink-0 flex-col gap-4 overflow-y-auto border-r border-[#f1f5f9] bg-[#f8fafc] p-5">
             <div>
               <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">About</p>
-              <p className="text-sm leading-6 text-slate-600">
+              <p className="line-clamp-5 text-sm leading-6 text-slate-600">
                 {app.teacherBio || "This teacher has not added a bio yet."}
               </p>
             </div>
@@ -157,8 +152,6 @@ const ViewModal = ({
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Contact & Details</p>
               {[
                 { Icon: Mail,             label: "Email",      value: app.teacherEmail },
-                { Icon: MapPin,           label: "Location",   value: app.teacherLocation },
-                { Icon: Star,             label: "Level",      value: app.teacherLevel },
                 { Icon: Calendar,         label: "Joined",     value: app.teacherJoined ?? "Not set" },
                 { Icon: BriefcaseBusiness,label: "Status",     value: app.teacherAvailable !== false ? "Available" : "Not available" },
               ].map(({ Icon, label, value }) => (
@@ -185,7 +178,7 @@ const ViewModal = ({
 
             {/* Certificate */}
             <div>
-              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Certificate</p>
+              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-slate-400">Documents</p>
               {app.certificateUrl ? (
                 <a
                   href={app.certificateUrl}
@@ -196,16 +189,24 @@ const ViewModal = ({
                   <Award size={13} /> View Certificate <ExternalLink size={11} className="ml-auto" />
                 </a>
               ) : (
-                <p className="rounded-xl border border-dashed border-[#dbe4ef] px-3 py-2.5 text-xs text-slate-400">
-                  No certificate uploaded yet.
-                </p>
+                <p className="rounded-xl border border-dashed border-[#dbe4ef] px-3 py-2.5 text-xs text-slate-400">No certificate uploaded yet.</p>
+              )}
+              {app.ninDocumentUrl && (
+                <a
+                  href={app.ninDocumentUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 flex items-center gap-2 rounded-xl border border-[#dbe4ef] bg-white px-3 py-2.5 text-xs font-semibold text-[#184e77] transition hover:bg-[#e0f2fe]"
+                >
+                  <FileText size={13} /> View NIN Document <ExternalLink size={11} className="ml-auto" />
+                </a>
               )}
             </div>
 
             {/* Link to full public profile */}
             {app.teacherId && (
               <Link
-                to={`/teachers/${app.teacherId}/profile`}
+              to={app.publicSlug ? `/staff/${app.publicSlug}` : `/teachers/${app.teacherId}/profile`}
                 className="mt-auto flex items-center justify-center gap-2 rounded-xl border border-[#184e77]/20 bg-[#184e77]/5 px-3 py-2.5 text-xs font-semibold text-[#184e77] transition hover:bg-[#184e77]/10"
               >
                 <User size={12} /> View Full Public Profile
@@ -249,55 +250,71 @@ const ViewModal = ({
             </div>
 
             {/* Cover letter */}
-            <div className="flex-1 p-5">
-              <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Cover Letter</p>
-              <div className="rounded-2xl border border-[#dbe4ef] bg-white p-4 shadow-sm shadow-slate-900/[0.04]">
-                {app.coverLetter ? (
-                  <p className="whitespace-pre-line text-sm leading-7 text-slate-600">{app.coverLetter}</p>
-                ) : (
-                  <div className="flex flex-col items-center justify-center gap-2 py-8 text-center">
-                    <FileText size={24} className="text-slate-300" />
-                    <p className="text-sm font-semibold text-slate-400">No cover letter submitted</p>
-                    <p className="text-xs text-slate-400">The teacher did not include a cover letter with this application.</p>
-                  </div>
-                )}
-              </div>
-            </div>
+            <div className="flex-1 bg-[#f1f5f9] p-5">
+              <p className="mb-3 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <FileText size={12} /> Cover Letter
+              </p>
+              {app.coverLetter ? (
+                <div className="mx-auto max-w-2xl rounded-xl border border-[#e2e8f0] bg-white px-8 py-9 shadow-md shadow-slate-900/[0.06] ring-1 ring-black/[0.02]">
+                  <p className="whitespace-pre-wrap font-serif text-[15px] leading-8 text-slate-800">{app.coverLetter}</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#cbd5e1] bg-white py-12 text-center">
+                  <FileText size={24} className="text-slate-300" />
+                  <p className="text-sm font-semibold text-slate-400">No cover letter submitted</p>
+                  <p className="text-xs text-slate-400">The teacher did not include a cover letter with this application.</p>
+                </div>
+              )}
 
-            {/* Decision bar — sticky at bottom */}
-            <div className="sticky bottom-0 border-t border-[#dbe4ef] bg-white/95 px-5 py-4 backdrop-blur">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold text-slate-500">
-                    {app.status === "PENDING"
-                      ? "Review this application and make a decision."
-                      : `Application is currently ${statusLabel[app.status].toLowerCase()}.`}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-slate-400">This will update the teacher's application status immediately.</p>
+              {(app.screeningAnswers?.length ?? 0) > 0 && (
+                <div className="mx-auto mt-5 max-w-2xl">
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Checklist Answers</p>
+                  <div className="grid gap-2">
+                    {app.screeningAnswers?.map((item) => (
+                      <div key={item.question} className="rounded-xl border border-[#dbe4ef] bg-white p-4 shadow-sm shadow-slate-900/[0.04]">
+                        <p className="text-xs font-black text-[#172033]">{item.question}</p>
+                        <p className="mt-1 text-sm text-slate-600">{item.answer || "No answer provided"}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  {app.status !== "REJECTED" && (
-                    <button
-                      onClick={() => onUpdateStatus("REJECTED")}
-                      disabled={isUpdating}
-                      className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
-                    >
-                      <XCircle size={15} />
-                      {app.status === "ACCEPTED" ? "Revoke" : "Reject"}
-                    </button>
-                  )}
-                  {app.status !== "ACCEPTED" && (
-                    <button
-                      onClick={() => onUpdateStatus("ACCEPTED")}
-                      disabled={isUpdating}
-                      className="flex items-center gap-2 rounded-xl bg-[#184e77] px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-[#184e77]/20 transition hover:bg-[#1a6091] disabled:opacity-50"
-                    >
-                      <CheckCircle2 size={15} />
-                      {app.status === "REJECTED" ? "Reconsider" : "Accept"}
-                    </button>
-                  )}
-                </div>
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Decision bar — full-width footer ─────────────────────── */}
+        <div className="shrink-0 border-t border-[#dbe4ef] bg-white px-5 py-4 sm:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-slate-500">
+                {app.status === "PENDING"
+                  ? "Review this application and make a decision."
+                  : `Application is currently ${statusLabel[app.status].toLowerCase()}.`}
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-400">This will update the teacher's application status immediately.</p>
+            </div>
+            <div className="flex gap-2">
+              {app.status !== "REJECTED" && (
+                <button
+                  onClick={() => onUpdateStatus("REJECTED")}
+                  disabled={isUpdating}
+                  className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-50"
+                >
+                  <XCircle size={15} />
+                  {app.status === "ACCEPTED" ? "Revoke" : "Reject"}
+                </button>
+              )}
+              {app.status !== "ACCEPTED" && (
+                <button
+                  onClick={() => onUpdateStatus("ACCEPTED")}
+                  disabled={isUpdating}
+                  className="flex items-center gap-2 rounded-xl bg-[#184e77] px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-[#184e77]/20 transition hover:bg-[#1a6091] disabled:opacity-50"
+                >
+                  <CheckCircle2 size={15} />
+                  {app.status === "REJECTED" ? "Reconsider" : "Accept"}
+                </button>
+              )}
             </div>
           </div>
         </div>

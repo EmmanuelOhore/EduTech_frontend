@@ -3,7 +3,9 @@ export type LoginPayload = {
   password: string;
 };
 
-export type UserRole = "TEACHER" | "INSTITUTION_ADMIN" | "SUPER_ADMIN";
+export type StaffRole = "TEACHER" | "DRIVER" | "JANITOR" | "ADMIN_STAFF";
+export type UserRole = StaffRole | "INSTITUTION_ADMIN" | "SUPER_ADMIN";
+export type KycStatus = "PENDING" | "UNDER_REVIEW" | "APPROVED" | "REJECTED";
 
 export type AuthUser = {
   id: string;
@@ -21,11 +23,16 @@ export type AuthInstitution = {
   email: string;
   phone?: string;
   type: "PRIMARY" | "SECONDARY" | "TERTIARY" | "VOCATIONAL" | "OTHER";
+  planType?: PlanType;
   location: string;
   isVerified: boolean;
   logoUrl?: string;
   verificationDocumentUrl?: string;
+  utilityBillUrl?: string;
+  authorizationLetterUrl?: string;
 };
+
+export type PlanType = "NONE" | "BASIC" | "ENTERPRISE" | "PRO";
 
 export type FullInstitution = {
   _id: string;
@@ -33,16 +40,27 @@ export type FullInstitution = {
   email: string;
   phone?: string;
   type: "PRIMARY" | "SECONDARY" | "TERTIARY" | "VOCATIONAL" | "OTHER";
+  planType?: PlanType;
+  planSelectedAt?: string;
   location: string;
   address?: string;
   description?: string;
   website?: string;
   logoUrl?: string;
   verificationDocumentUrl?: string;
+  utilityBillUrl?: string;
+  authorizationLetterUrl?: string;
   isVerified: boolean;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type Subject = {
+  _id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type UpdateProfilePayload = {
@@ -57,6 +75,8 @@ export type UpdateTeacherProfilePayload = {
   profileImage?: string;
   location?: string;
   level?: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
+  teachingLevel?: "PRIMARY" | "SECONDARY" | "TERTIARY";
+  subjectExpertise?: { subject: string; rank: number }[];
   bio?: string;
   certificateUrl?: string;
   ninDocumentUrl?: string;
@@ -81,6 +101,8 @@ export type UpdateInstitutionPayload = {
   website?: string;
   logoUrl?: string;
   verificationDocumentUrl?: string;
+  utilityBillUrl?: string;
+  authorizationLetterUrl?: string;
 };
 
 export type AuthResponse = {
@@ -98,8 +120,15 @@ export type RegisterPayload = {
 };
 
 export type TeacherRegisterPayload = RegisterPayload & {
+  staffRole: StaffRole;
+  state: string;
+  lga: string;
   location: string;
-  level: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
+  level?: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
+  teachingLevel?: "PRIMARY" | "SECONDARY" | "TERTIARY";
+  teachingPracticeStatus?: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "NOT_APPLICABLE";
+  nyscStatus?: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "EXEMPTED" | "NOT_APPLICABLE";
+  subjectExpertise?: { subject: string; rank: number }[];
   bio?: string;
   nin?: string;
   profileImage?: string;
@@ -115,6 +144,8 @@ export type SchoolRegisterPayload = RegisterPayload & {
   adminProfileImage?: string;
   schoolLogoUrl?: string;
   verificationDocumentUrl?: string;
+  utilityBillUrl: string;
+  authorizationLetterUrl: string;
 };
 
 export type UploadCategory =
@@ -123,7 +154,64 @@ export type UploadCategory =
   | "teacher-nin-document"
   | "institution-logo"
   | "institution-verification-document"
-  | "admin-profile-image";
+  | "admin-profile-image"
+  | "guarantor-id-document"
+  | "guarantor-proof-of-address";
+
+export type GuarantorStatus =
+  | "INVITED"
+  | "SUBMITTED"
+  | "UNDER_REVIEW"
+  | "APPROVED"
+  | "REJECTED";
+
+export type GuarantorIdType = "NIN" | "DRIVERS_LICENSE" | "PASSPORT" | "VOTERS_CARD";
+
+export type Guarantor = {
+  id: string;
+  fullName: string;
+  relationship?: string;
+  email: string;
+  phone: string;
+  status: GuarantorStatus;
+  idType?: GuarantorIdType;
+  idNumber?: string;
+  idDocumentUrl?: string;
+  proofOfAddressUrl?: string;
+  rejectionReason?: string;
+  portalPath?: string;
+  portalToken?: string;
+};
+
+export type AddGuarantorPayload = {
+  fullName: string;
+  relationship?: string;
+  email: string;
+  phone: string;
+};
+
+export type SubmitGuarantorPayload = {
+  token: string;
+  idType: GuarantorIdType;
+  idNumber?: string;
+  idDocumentUrl: string;
+  proofOfAddressUrl: string;
+};
+
+export type GuarantorPortalView = {
+  instructorName: string;
+  guarantor: Guarantor;
+};
+
+export type AdminGuarantor = Guarantor & {
+  teacherId?: {
+    _id?: string;
+    userId?: { firstName?: string; lastName?: string; email?: string };
+  };
+  contactVerified?: boolean;
+  submittedAt?: string;
+  createdAt?: string;
+};
 
 export type UploadedAsset = {
   url: string;
@@ -142,9 +230,17 @@ export type TeachingRecord = {
 
 export type TeacherRegisterFormValues = RegisterPayload & {
   confirmPassword: string;
-  subject: string;
+  staffRole: StaffRole;
+  state: string;
+  lga: string;
+  primarySubject: string;
+  secondarySubject: string;
+  tertiarySubject: string;
   location: string;
   level: "BEGINNER" | "INTERMEDIATE" | "EXPERT" | "";
+  teachingLevel: "PRIMARY" | "SECONDARY" | "TERTIARY" | "";
+  teachingPracticeStatus: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "NOT_APPLICABLE";
+  nyscStatus: "NOT_STARTED" | "ONGOING" | "COMPLETED" | "EXEMPTED" | "NOT_APPLICABLE";
   referralCode: string;
   nin: string;
   profilePicture: string;
@@ -160,6 +256,8 @@ export type SchoolRegisterFormValues = RegisterPayload & {
   phone: string;
   schoolLogoUrl: string;
   verificationDocumentUrl: string;
+  utilityBillUrl: string;
+  authorizationLetterUrl: string;
   agreeToTerms: boolean;
 };
 
@@ -170,6 +268,8 @@ export type Job = {
   institutionName?: string;
   institutionImage?: string;
   location: string;
+  state?: string;
+  lga?: string;
   employmentType: "FULL_TIME" | "PART_TIME" | "ROTATIONAL";
   level: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
   subject?: string;
@@ -187,6 +287,37 @@ export type Job = {
   expectedSessionsPerWeek?: number;
   requiresWeekendAvailability?: boolean;
   requiresMultiBranchTravel?: boolean;
+  screeningQuestions?: ScreeningQuestion[];
+  // Proximity (present only when fetched via the "near me" job feed)
+  distanceKm?: number;
+  band?: DistanceBandKey;
+};
+
+export type DistanceBandKey = "0-5" | "5-15" | "15-30" | "30+";
+
+export type NearbyTeacher = {
+  _id: string;
+  distanceKm: number;
+  band: DistanceBandKey;
+  fuzzedDistance: string;
+  level?: string;
+  teachingLevel?: string;
+  staffRole?: string;
+  location?: string;
+  kycStatus?: string;
+  isAvailable?: boolean;
+  user?: {
+    _id?: string;
+    firstName?: string;
+    lastName?: string;
+    profileImage?: string;
+  };
+};
+
+export type ScreeningQuestion = {
+  question: string;
+  type: "YES_NO" | "TEXT" | "NUMBER";
+  required: boolean;
 };
 
 export type CreateJobPayload = {
@@ -195,6 +326,8 @@ export type CreateJobPayload = {
   subjectName: string;
   level: Job["level"];
   location: string;
+  state?: string;
+  lga?: string;
   employmentType: Job["employmentType"];
   salaryRange?: string;
   slots?: number;
@@ -207,6 +340,7 @@ export type CreateJobPayload = {
   expectedSessionsPerWeek?: number;
   requiresWeekendAvailability?: boolean;
   requiresMultiBranchTravel?: boolean;
+  screeningQuestions?: ScreeningQuestion[];
   /** Internal field — branches string from form, stripped before sending to API */
   _rotationalBranches?: string;
 };
@@ -228,6 +362,7 @@ export type JobApplication = {
   ninStatus?: string;
   ninDocumentUrl?: string;
   certificateUrl?: string;
+  publicSlug?: string;
   jobId: string;
   jobTitle: string;
   institutionName?: string;
@@ -237,6 +372,7 @@ export type JobApplication = {
   subject?: string;
   status: ApplicationStatus;
   coverLetter?: string;
+  screeningAnswers?: { question: string; answer: string }[];
   date: string;
 };
 
@@ -267,20 +403,107 @@ export type TeacherReferenceSummary = {
 export type TeacherProfile = {
   id: string;
   userId: string;
+  staffRole: StaffRole;
+  publicSlug?: string;
   firstName: string;
   lastName: string;
   email: string;
   profileImage?: string;
   location: string;
+  state?: string;
+  lga?: string;
   level: "BEGINNER" | "INTERMEDIATE" | "EXPERT";
+  teachingLevel?: "PRIMARY" | "SECONDARY" | "TERTIARY";
+  teachingPracticeStatus?: string;
+  nyscStatus?: string;
+  subjectExpertise: { subject: string; rank: number }[];
   bio?: string;
   ninStatus?: string;
+  kycStatus?: KycStatus;
+  kycReviewedAt?: string;
+  kycRejectionReason?: string;
+  backgroundCheckConsent?: boolean;
+  backgroundCheckConsentAt?: string;
   certificateUrl?: string;
   ninDocumentUrl?: string;
   teachingRecords: TeachingRecord[];
   isAvailable: boolean;
   isVerified: boolean;
+  profileViewCount?: number;
   createdAt: string;
+  // Geolocation — the teacher's own point (their data only)
+  lat?: number;
+  lng?: number;
+  geoSource?: "CENTROID" | "GPS" | "GEOCODED" | "MANUAL";
+};
+
+export type ProfileView = {
+  viewedAt: string;
+  viewerRole: string;
+  viewerName?: string;
+  viewerEmail?: string;
+  isAnonymous?: boolean;
+};
+
+export type ProfileViewsSummary = {
+  count: number;
+  viewsToday?: number;
+  uniqueViewers?: number;
+  recentViews: ProfileView[];
+};
+
+export type TestDataBatch = {
+  batchId: string;
+  users: number;
+  createdAt: string;
+};
+
+export type TestDataSummary = {
+  users: number;
+  profiles: number;
+  applications: number;
+  batches: TestDataBatch[];
+};
+
+export type GenerateTestStaffPayload = {
+  count: number;
+  roleMode: "TEACHERS_ONLY" | "MIXED";
+  createApplications: boolean;
+  jobId?: string;
+  applicationStatusMode: "MIXED" | ApplicationStatus;
+};
+
+export type GenerateTestStaffResult = {
+  success: boolean;
+  batchId: string;
+  defaultPassword: string;
+  created: {
+    users: number;
+    profiles: number;
+    applications: number;
+  };
+  skipped: {
+    duplicateEmails: number;
+  };
+  sampleAccounts: {
+    email: string;
+    password: string;
+  }[];
+};
+
+export type DeleteTestUsersPayload = {
+  batchId?: string;
+  email?: string;
+  deleteAll?: boolean;
+};
+
+export type DeleteTestUsersResult = {
+  success: boolean;
+  deleted: {
+    applications: number;
+    profiles: number;
+    users: number;
+  };
 };
 
 export type CreateTeacherReferencePayload = {

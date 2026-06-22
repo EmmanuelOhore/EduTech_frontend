@@ -12,7 +12,7 @@ import {
   Star,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
-import { useFetchTeacherProfile, useFetchTeacherReferences } from "../services/queries";
+import { useFetchPublicStaffProfile, useFetchTeacherProfile, useFetchTeacherReferences } from "../services/queries";
 
 /* ─── tiny helpers ─────────────────────────────────────────────── */
 
@@ -60,23 +60,35 @@ const AvailabilityDot = ({ available }: { available: boolean }) => (
   </span>
 );
 
+const roleLabel = (role?: string) => {
+  const labels: Record<string, string> = {
+    TEACHER: "Teacher",
+    DRIVER: "Driver",
+    JANITOR: "Janitor",
+    ADMIN_STAFF: "Admin Staff",
+  };
+  return labels[role ?? ""] ?? "Staff";
+};
+
 /* ─── page ─────────────────────────────────────────────────────── */
 
 const TeacherPublicProfilePage = () => {
-  const { id } = useParams<{ id: string }>();
-  const profileQuery = useFetchTeacherProfile(id);
-  const referencesQuery = useFetchTeacherReferences(id);
-  const profile = profileQuery.data;
+  const { id, slug } = useParams<{ id?: string; slug?: string }>();
+  const profileByIdQuery = useFetchTeacherProfile(id);
+  const publicProfileQuery = useFetchPublicStaffProfile(slug);
+  const activeProfileQuery = slug ? publicProfileQuery : profileByIdQuery;
+  const profile = activeProfileQuery.data;
+  const referencesQuery = useFetchTeacherReferences(profile?.staffRole === "TEACHER" ? profile.id : undefined);
   const references = referencesQuery.data?.references ?? [];
   const averageRating = referencesQuery.data?.averageRating ?? 0;
 
   /* loading */
-  if (profileQuery.isLoading || referencesQuery.isLoading) {
+  if (activeProfileQuery.isLoading || referencesQuery.isLoading) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#f6f8fb]">
         <div className="flex flex-col items-center gap-3 text-slate-400">
           <span className="size-8 animate-spin rounded-full border-2 border-[#184e77]/20 border-t-[#184e77]" />
-          <span className="text-sm">Loading profile…</span>
+          <span className="text-sm">Loading profile...</span>
         </div>
       </main>
     );
@@ -87,7 +99,7 @@ const TeacherPublicProfilePage = () => {
     return (
       <main className="grid min-h-screen place-items-center bg-[#f6f8fb] text-center">
         <div>
-          <h1 className="text-2xl font-semibold text-[#172033]">Teacher profile not found</h1>
+          <h1 className="text-2xl font-semibold text-[#172033]">Staff profile not found</h1>
           <Link
             to="/dashboard"
             className="mt-4 inline-flex rounded-xl bg-[#184e77] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#1a6091]"
@@ -151,7 +163,7 @@ const TeacherPublicProfilePage = () => {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-[#7dd3fc] ring-1 ring-white/20">
-                    <BookOpen size={10} /> Public Teacher Profile
+                    <BookOpen size={10} /> Public {roleLabel(profile.staffRole)} Profile
                   </span>
                   {profile.isVerified && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-emerald-400/20 px-3 py-1 text-[11px] font-semibold text-emerald-100 ring-1 ring-emerald-400/30">
@@ -171,6 +183,11 @@ const TeacherPublicProfilePage = () => {
                   <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#287271]/50 px-3 py-1.5 text-xs font-semibold text-white/90 ring-1 ring-white/15 transition hover:bg-[#287271]/70">
                     <GraduationCap size={11} /> {profile.level}
                   </span>
+                  {profile.teachingLevel && (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/90 ring-1 ring-white/15">
+                      <Briefcase size={11} /> {profile.teachingLevel}
+                    </span>
+                  )}
                   {references.length > 0 && (
                     <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/15 px-3 py-1.5 text-xs font-semibold text-amber-100 ring-1 ring-amber-300/20">
                       <Star size={11} className="fill-amber-300 text-amber-300" />
@@ -241,7 +258,7 @@ const TeacherPublicProfilePage = () => {
             <p className="mt-4 text-sm leading-[1.85] text-slate-500">
               {profile.bio || (
                 <span className="italic text-slate-400">
-                  This teacher has not added a public bio yet.
+                  This staff member has not added a public bio yet.
                 </span>
               )}
             </p>
@@ -274,7 +291,9 @@ const TeacherPublicProfilePage = () => {
                 </span>
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-slate-400">Level</p>
-                  <p className="text-sm font-semibold text-[#172033]">{profile.level}</p>
+                  <p className="text-sm font-semibold text-[#172033]">
+                    {profile.teachingLevel ?? roleLabel(profile.staffRole)}
+                  </p>
                 </div>
               </div>
               {/* Availability */}
@@ -303,6 +322,16 @@ const TeacherPublicProfilePage = () => {
                   <ShieldCheck size={13} className="text-[#287271]" />
                 </span>
                 <div>
+                  <p className="text-[10px] uppercase tracking-wide text-slate-400">Profile Views</p>
+                  <p className="text-sm font-semibold text-[#172033]">{profile.profileViewCount ?? 0}</p>
+                </div>
+              </div>
+              {/* NIN Status */}
+              <div className="flex items-center gap-3 py-3">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-[#f8fafc]">
+                  <ShieldCheck size={13} className="text-[#287271]" />
+                </span>
+                <div>
                   <p className="text-[10px] uppercase tracking-wide text-slate-400">NIN Status</p>
                   <NinBadge status={profile.ninStatus ?? null} />
                 </div>
@@ -322,8 +351,10 @@ const TeacherPublicProfilePage = () => {
             <div className="mt-4 space-y-3">
               <div className="flex items-center justify-between rounded-xl border border-[#eef2f7] bg-[#f8fafc] px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-[#172033]">Teaching Certificate</p>
-                  <p className="text-[11px] text-slate-400">Shared by the teacher on their public profile</p>
+                  <p className="text-sm font-semibold text-[#172033]">
+                    {profile.staffRole === "TEACHER" ? "Teaching Certificate" : "Supporting Document"}
+                  </p>
+                  <p className="text-[11px] text-slate-400">Shared on the public profile</p>
                 </div>
                 {profile.certificateUrl ? (
                   <a href={profile.certificateUrl} target="_blank" rel="noreferrer" className="text-xs font-bold text-[#184e77] hover:underline">
@@ -341,11 +372,11 @@ const TeacherPublicProfilePage = () => {
               <span className="flex size-7 items-center justify-center rounded-lg bg-[#eef6fb]">
                 <GraduationCap size={13} className="text-[#184e77]" />
               </span>
-              Teaching Records
+              {profile.staffRole === "TEACHER" ? "Teaching Records" : "Work Records"}
             </h2>
             {profile.teachingRecords.length === 0 ? (
               <div className="mt-4 rounded-xl bg-[#f8fafc] px-4 py-10 text-center text-sm text-slate-400">
-                No teaching records added yet.
+                No records added yet.
               </div>
             ) : (
               <div className="mt-4 space-y-3">

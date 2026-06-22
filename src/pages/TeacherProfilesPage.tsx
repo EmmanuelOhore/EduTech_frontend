@@ -102,154 +102,208 @@ const TeacherProfileModal = ({
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-5xl overflow-hidden rounded-2xl border border-[#dbe4ef] bg-white shadow-2xl">
-        <div className="bg-[#184e77] px-6 py-5 text-white">
-          <div className="flex items-start justify-between gap-4">
+      <div className="relative z-10 flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-[#dbe4ef] bg-white shadow-2xl">
+        <div className="relative shrink-0 overflow-hidden rounded-t-2xl bg-gradient-to-br from-[#15466b] via-[#1c5a82] to-[#236d77] px-6 py-6 text-white">
+          <div className="relative flex items-start justify-between gap-4">
             <div className="flex min-w-0 items-center gap-4">
-              <div className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/15 text-lg font-black">
-                {teacher.avatar ? (
-                  <img src={teacher.avatar} alt={teacher.name} className="size-full object-cover" />
-                ) : (
-                  teacher.name.charAt(0)
-                )}
+              <div className="relative shrink-0">
+                <div className="grid size-16 place-items-center overflow-hidden rounded-2xl bg-white/15 text-xl font-black shadow-lg ring-2 ring-white/30">
+                  {teacher.avatar ? (
+                    <img src={teacher.avatar} alt={teacher.name} className="size-full object-cover" />
+                  ) : (
+                    teacher.name.charAt(0)
+                  )}
+                </div>
+                <span className={`absolute -bottom-0.5 -right-0.5 size-4 rounded-full ring-2 ring-[#1c5a82] ${teacher.available === false ? "bg-slate-400" : "bg-emerald-400"}`} />
               </div>
               <div className="min-w-0">
-                <p className="text-xs text-white/65">Accepted Teacher Profile</p>
-                <h2 className="mt-1 truncate text-xl font-black">{teacher.name}</h2>
-                <p className="mt-1 truncate text-sm text-white/70">{teacher.latestJobTitle}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-white/55">Accepted Teacher Profile</p>
+                <h2 className="mt-1 truncate text-2xl font-black leading-tight">{teacher.name}</h2>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-bold text-white ring-1 ring-white/20">
+                    <Star size={11} /> {teacher.level}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/80 ring-1 ring-white/15">
+                    <BookOpen size={11} /> {teacher.subject}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ring-1 ring-inset ${
+                      teacher.verified
+                        ? "bg-emerald-400/20 text-emerald-100 ring-emerald-300/30"
+                        : "bg-amber-400/20 text-amber-100 ring-amber-300/30"
+                    }`}
+                  >
+                    {teacher.verified ? <CheckCircle2 size={11} /> : <ShieldCheck size={11} />}
+                    {teacher.verified ? "Verified" : "Verification pending"}
+                  </span>
+                </div>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="grid size-8 place-items-center rounded-lg bg-white/15 text-white transition hover:bg-white/25"
+              className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15 text-white transition hover:bg-white/25"
             >
-              <X size={15} />
+              <X size={16} />
             </button>
           </div>
         </div>
 
-        <div className="grid gap-5 p-6">
-          <div className="grid gap-5 lg:grid-cols-[1fr_1.25fr]">
-            <div className="rounded-xl border border-[#dbe4ef] bg-[#f8fafc] p-4">
+        <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-6">
+          <div className="grid items-start gap-5 lg:grid-cols-[1fr_1.25fr]">
+            <div className="rounded-2xl border border-[#e3ebf3] bg-white p-5 shadow-sm shadow-slate-900/[0.04]">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs text-slate-400">Roster Summary</p>
-                  <p className="mt-1 text-sm font-semibold text-[#172033]">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Roster Summary</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-[#172033]">
+                    <span className={`size-2 rounded-full ${teacher.available === false ? "bg-slate-400" : "bg-emerald-500"}`} />
                     {teacher.available === false ? "Not currently available" : "Available for active school work"}
                   </p>
                 </div>
-                <span className={`rounded-xl border px-3 py-1 text-xs font-semibold ${
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${
                   teacher.verified
                     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
                     : "border-amber-200 bg-amber-50 text-amber-700"
                 }`}>
+                  {teacher.verified ? <CheckCircle2 size={12} /> : <ShieldCheck size={12} />}
                   {teacher.verified ? "Verified user" : "Verification pending"}
                 </span>
               </div>
-              <p className="mt-4 text-sm leading-6 text-slate-600">
+
+              <p className="mt-4 text-sm leading-7 text-slate-600">
                 {teacher.bio || "This teacher has not added a bio yet."}
               </p>
-              <div className="mt-4 grid grid-cols-2 gap-3">
-                <Link
-                  to={`/school/jobs/${teacher.latestJobId}`}
-                  className="rounded-xl bg-white p-3 transition hover:border hover:border-[#184e77]/20 hover:bg-[#f0f7ff]"
-                >
-                  <p className="text-[11px] text-slate-400">Latest Role</p>
-                  <p className="mt-1 line-clamp-2 text-sm font-semibold text-[#172033]">
-                    {teacher.latestJobTitle}
-                  </p>
-                </Link>
-                <div className="rounded-xl bg-white p-3">
-                  <p className="text-[11px] text-slate-400">Accepted Roles</p>
-                  <p className="mt-1 text-sm font-semibold text-[#172033]">
-                    {teacher.records} job{teacher.records === 1 ? "" : "s"}
-                  </p>
-                </div>
-                <div className="rounded-xl bg-white p-3">
-                  <p className="text-[11px] text-slate-400">Joined</p>
-                  <p className="mt-1 text-sm font-semibold text-[#172033]">{teacher.joined}</p>
-                </div>
-                <div className="rounded-xl bg-white p-3">
-                  <p className="text-[11px] text-slate-400">Availability</p>
-                  <p className="mt-1 text-sm font-semibold text-[#172033]">
-                    {teacher.available === false ? "Not available" : "Available"}
-                  </p>
-                </div>
+
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                {[
+                  { to: `/school/jobs/${teacher.latestJobId}`, icon: Star, tone: "bg-sky-50 text-sky-600", label: "Latest Role", value: teacher.latestJobTitle, clamp: true },
+                  { icon: ClipboardList, tone: "bg-violet-50 text-violet-600", label: "Accepted Roles", value: `${teacher.records} job${teacher.records === 1 ? "" : "s"}` },
+                  { icon: GraduationCap, tone: "bg-amber-50 text-amber-600", label: "Joined", value: teacher.joined },
+                  { icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-600", label: "Availability", value: teacher.available === false ? "Not available" : "Available" },
+                ].map((tile) => {
+                  const TileIcon = tile.icon;
+                  const inner = (
+                    <>
+                      <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${tile.tone}`}>
+                        <TileIcon size={14} />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{tile.label}</p>
+                        <p className={`mt-0.5 text-sm font-bold text-[#172033] ${tile.clamp ? "line-clamp-2" : "truncate"}`}>{tile.value}</p>
+                      </div>
+                    </>
+                  );
+                  return tile.to ? (
+                    <Link key={tile.label} to={tile.to} className="flex items-start gap-2.5 rounded-xl border border-[#eef2f7] bg-[#f8fafc] p-3 transition hover:border-[#184e77]/25 hover:bg-[#f0f7ff] hover:shadow-sm">
+                      {inner}
+                    </Link>
+                  ) : (
+                    <div key={tile.label} className="flex items-start gap-2.5 rounded-xl border border-[#eef2f7] bg-[#f8fafc] p-3">
+                      {inner}
+                    </div>
+                  );
+                })}
               </div>
+
               {teacher.certificateUrl ? (
                 <a
                   href={teacher.certificateUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#dbe4ef] bg-white px-4 py-2 text-sm font-semibold text-[#184e77] transition hover:bg-[#e0f2fe]"
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#184e77]/20 bg-[#184e77]/5 px-4 py-2.5 text-sm font-bold text-[#184e77] transition hover:bg-[#184e77]/10"
                 >
                   View Certificate <ExternalLink size={14} />
                 </a>
               ) : (
-                <p className="mt-4 text-xs text-slate-400">No certificate has been uploaded yet.</p>
+                <p className="mt-4 rounded-xl border border-dashed border-[#dbe4ef] px-4 py-2.5 text-center text-xs text-slate-400">No certificate has been uploaded yet.</p>
               )}
             </div>
 
-            <div className="rounded-xl border border-[#dbe4ef] bg-white p-4">
-              <p className="text-xs text-slate-400">Accepted Assignments</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {teacher.acceptedJobs.map((item) => (
-                  <Link
-                    key={item.id}
-                    to={`/school/jobs/${item.jobId}`}
-                    className="rounded-xl border border-[#dbe4ef] bg-[#f8fafc] p-3 text-left transition hover:border-[#184e77]/25 hover:bg-[#f0f7ff]"
-                    title="Open job details"
-                  >
-                    <p className="text-[11px] text-slate-400">Job</p>
-                    <p className="truncate text-sm font-semibold text-[#172033]">{item.title}</p>
-                    <p className="mt-2 text-[11px] text-slate-500">
-                      {item.subject ?? "General"} • {item.location}
-                    </p>
-                    <p className="mt-1 text-[11px] text-slate-400">{item.date}</p>
-                  </Link>
-                ))}
+            <div className="rounded-2xl border border-[#e3ebf3] bg-white p-5 shadow-sm shadow-slate-900/[0.04]">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Accepted Assignments</p>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-[#184e77]/10 px-2.5 py-1 text-[11px] font-black text-[#184e77]">
+                  <ClipboardList size={11} />
+                  {teacher.acceptedJobs.length} total
+                </span>
               </div>
+              {teacher.acceptedJobs.length ? (
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {teacher.acceptedJobs.map((item) => (
+                    <Link
+                      key={item.id}
+                      to={`/school/jobs/${item.jobId}`}
+                      className="group relative overflow-hidden rounded-xl border border-[#eef2f7] bg-[#f8fafc] p-4 pl-5 text-left transition hover:border-[#184e77]/25 hover:bg-[#f0f7ff] hover:shadow-sm"
+                      title="Open job details"
+                    >
+                      <span className="absolute inset-y-0 left-0 w-1 bg-[#184e77]/30 transition-colors group-hover:bg-[#184e77]" />
+                      <div className="flex items-start gap-2.5">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-[#184e77]/10 text-[#184e77]">
+                          <BookOpen size={16} />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Job</p>
+                          <p className="truncate text-sm font-bold text-[#172033]">{item.title}</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                        <span className="inline-flex items-center gap-1"><BookOpen size={11} className="text-slate-400" /> {item.subject ?? "General"}</span>
+                        <span className="inline-flex items-center gap-1"><MapPin size={11} className="text-slate-400" /> {item.location}</span>
+                      </div>
+                      <p className="mt-1 inline-flex items-center gap-1 text-[11px] text-slate-400"><GraduationCap size={11} /> {item.date}</p>
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#dbe4ef] py-10 text-center">
+                  <span className="grid size-10 place-items-center rounded-xl bg-[#f8fafc] text-slate-300">
+                    <ClipboardList size={18} />
+                  </span>
+                  <p className="text-sm font-semibold text-slate-400">No assignments yet</p>
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: Mail, label: "Email", value: teacher.email },
-              { icon: Star, label: "Teacher Level", value: teacher.level },
-              { icon: MapPin, label: "Teacher Location", value: teacher.location },
-              { icon: BookOpen, label: "Primary Subject", value: teacher.subject },
-              { icon: GraduationCap, label: "Joined", value: teacher.joined },
-              { icon: CheckCircle2, label: "Accepted Jobs", value: String(teacher.records) },
+              { icon: Mail, tone: "bg-sky-50 text-sky-600", label: "Email", value: teacher.email },
+              { icon: Star, tone: "bg-amber-50 text-amber-600", label: "Teacher Level", value: teacher.level },
+              { icon: MapPin, tone: "bg-rose-50 text-rose-600", label: "Teacher Location", value: teacher.location },
+              { icon: BookOpen, tone: "bg-violet-50 text-violet-600", label: "Primary Subject", value: teacher.subject },
+              { icon: GraduationCap, tone: "bg-teal-50 text-teal-600", label: "Joined", value: teacher.joined },
+              { icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-600", label: "Accepted Jobs", value: String(teacher.records) },
             ].map((item) => {
               const Icon = item.icon;
               return (
-                <div key={item.label} className="flex items-center gap-3 rounded-xl bg-[#f8fafc] p-3">
-                  <span className="grid size-8 place-items-center rounded-lg bg-[#e0f2fe] text-[#184e77]">
-                    <Icon size={14} />
+                <div key={item.label} className="flex items-center gap-3 rounded-xl border border-[#eef2f7] bg-white p-3.5 shadow-sm shadow-slate-900/[0.03] transition hover:shadow-md hover:shadow-slate-900/[0.06]">
+                  <span className={`grid size-9 shrink-0 place-items-center rounded-lg ${item.tone}`}>
+                    <Icon size={15} />
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] text-slate-400">{item.label}</p>
-                    <p className="truncate text-sm font-semibold text-[#172033]">{item.value}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{item.label}</p>
+                    <p className="truncate text-sm font-bold text-[#172033]">{item.value}</p>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <div className="rounded-xl border border-[#dbe4ef] bg-[#f8fafc] p-4">
-            <p className="text-xs text-slate-400">NIN Status</p>
-            <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-              <span className={`inline-flex items-center gap-1 rounded-lg border px-3 py-1 text-xs font-black ${ninConfig.bg}`}>
-                <NinIcon size={11} />
-                {ninConfig.label}
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#e3ebf3] bg-gradient-to-r from-[#f8fafc] to-[#eef6fb] p-5 shadow-sm shadow-slate-900/[0.04]">
+            <div className="flex items-center gap-3">
+              <span className={`grid size-11 shrink-0 place-items-center rounded-xl border ${ninConfig.bg}`}>
+                <NinIcon size={18} />
               </span>
-              <Link
-                to="/school/applications"
-                className="inline-flex items-center gap-2 rounded-xl bg-[#184e77] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#1a6091]"
-              >
-                View Applications
-              </Link>
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">NIN Status</p>
+                <p className="mt-0.5 text-sm font-black text-[#172033]">{ninConfig.label}</p>
+              </div>
             </div>
+            <Link
+              to="/school/applications"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#184e77] to-[#216a78] px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-[#184e77]/20 transition hover:shadow-md hover:brightness-110"
+            >
+              View Applications <ChevronRight size={15} />
+            </Link>
           </div>
         </div>
       </div>

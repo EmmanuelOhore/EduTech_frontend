@@ -13,9 +13,10 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import { useLoginMutation } from "../services/mutation";
+import { useAuth } from "../lib/AuthContext";
 import type { AuthResponse, LoginPayload } from "../types/TypeChecks";
 
 const validationSchema = Yup.object({
@@ -24,7 +25,10 @@ const validationSchema = Yup.object({
 });
 
 const getRoleLandingPage = (auth: AuthResponse) => {
-  if (auth.user.role === "INSTITUTION_ADMIN" || auth.user.role === "SUPER_ADMIN") {
+  if (auth.user.role === "SUPER_ADMIN") {
+    return "/admin/dashboard";
+  }
+  if (auth.user.role === "INSTITUTION_ADMIN") {
     return "/school/dashboard";
   }
   return "/jobs";
@@ -32,11 +36,14 @@ const getRoleLandingPage = (auth: AuthResponse) => {
 
 const canUseRedirect = (auth: AuthResponse, redirectTo?: string) => {
   if (!redirectTo) return false;
+  if (redirectTo.startsWith("/admin")) {
+    return auth.user.role === "SUPER_ADMIN";
+  }
   if (redirectTo.startsWith("/school")) {
-    return auth.user.role === "INSTITUTION_ADMIN" || auth.user.role === "SUPER_ADMIN";
+    return auth.user.role === "INSTITUTION_ADMIN";
   }
   if (redirectTo === "/dashboard") {
-    return auth.user.role === "TEACHER";
+    return !["INSTITUTION_ADMIN", "SUPER_ADMIN"].includes(auth.user.role);
   }
   return true;
 };
@@ -44,8 +51,8 @@ const canUseRedirect = (auth: AuthResponse, redirectTo?: string) => {
 const features = [
   {
     icon: GraduationCap,
-    title: "For Teachers",
-    desc: "Browse open positions and apply with one click",
+    title: "For Staff",
+    desc: "Create one profile for teaching and non-teaching school roles",
   },
   {
     icon: School,
@@ -61,10 +68,15 @@ const features = [
 
 const Login = () => {
   const loginMutation = useLoginMutation();
+  const { auth, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname;
   const [showPassword, setShowPassword] = useState(false);
+
+  if (isAuthenticated && auth) {
+    return <Navigate to={getRoleLandingPage(auth)} replace />;
+  }
 
   return (
     <main className="min-h-screen bg-[#f0f4f9]" style={{ fontFamily: "Inter, system-ui, sans-serif" }}>
@@ -108,13 +120,13 @@ const Login = () => {
 
             <h1 className="mt-8 text-4xl font-black leading-[1.15] text-white max-phoneL:text-3xl">
               Connecting great{" "}
-              <span className="text-[#6edcd4]">teachers</span>
+              <span className="text-[#6edcd4]">school staff</span>
               {" "}with great{" "}
               <span className="text-[#6edcd4]">schools.</span>
             </h1>
 
             <p className="mt-5 max-w-sm text-base leading-relaxed text-white/70">
-              Manage job listings, teacher applications, and school dashboards — all in one place.
+              Manage job listings, staff applications, and school dashboards — all in one place.
             </p>
 
             {/* feature cards */}
@@ -140,7 +152,7 @@ const Login = () => {
           {/* bottom stats strip */}
           <div className="mt-12 grid grid-cols-3 gap-4 border-t border-white/10 pt-8">
             {[
-              { val: "2,400+", label: "Teachers" },
+              { val: "2,400+", label: "Staff" },
               { val: "580+", label: "Schools" },
               { val: "12k+", label: "Applications" },
             ].map(({ val, label }) => (
@@ -282,11 +294,11 @@ const Login = () => {
                     {/* sign-up buttons */}
                     <div className="grid grid-cols-2 gap-3 max-phoneL:grid-cols-1">
                       <Link
-                        to="/teacher/register"
+                        to="/staff/register"
                         className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#dbe4ef] bg-white px-4 text-sm font-bold text-[#184e77] shadow-sm transition-all hover:border-[#184e77]/30 hover:bg-[#f0f8ff] hover:shadow-md"
                       >
                         <GraduationCap size={15} />
-                        Teacher Sign Up
+                        Staff Sign Up
                       </Link>
                       <Link
                         to="/school/register"

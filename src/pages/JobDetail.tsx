@@ -241,6 +241,7 @@ const JobDetail = () => {
   const [applied, setApplied] = useState(false);
   const [applyOpen, setApplyOpen] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
+  const [screeningAnswers, setScreeningAnswers] = useState<Record<string, string>>({});
   const { toggleSavedJob, isSavedJob } = useSavedJobs();
   const applyToJob = useApplyToJobMutation();
   const hasAlreadyApplied = useMemo(
@@ -294,12 +295,16 @@ const JobDetail = () => {
   };
 
   const submitApplication = () => {
+    const answers = (job.screeningQuestions ?? [])
+      .map((q) => ({ question: q.question, answer: (screeningAnswers[q.question] ?? "").trim() }))
+      .filter((a) => a.answer);
     applyToJob.mutate(
-      { jobId: job._id, coverLetter },
+      { jobId: job._id, coverLetter, screeningAnswers: answers },
       {
         onSuccess: () => {
           setApplied(true);
           setApplyOpen(false);
+          setScreeningAnswers({});
         },
       },
     );
@@ -315,8 +320,8 @@ const JobDetail = () => {
             className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
             onClick={() => setApplyOpen(false)}
           />
-          <section className="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/20">
-            <div className="bg-[#184e77] px-6 py-5 text-white">
+          <section className="relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-950/20">
+            <div className="shrink-0 bg-[#184e77] px-6 py-5 text-white">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs text-white/65">Application</p>
@@ -332,7 +337,7 @@ const JobDetail = () => {
                 </button>
               </div>
             </div>
-            <div className="grid gap-5 p-6">
+            <div className="grid min-h-0 flex-1 gap-5 overflow-y-auto p-6">
               <div className="grid gap-3 sm:grid-cols-3">
                 {[
                   { label: "Subject", value: job.subject ?? "Not set" },
@@ -348,15 +353,36 @@ const JobDetail = () => {
               <label className="grid gap-1.5 text-sm font-semibold text-[#172033]">
                 Cover Letter
                 <textarea
-                  rows={7}
+                  rows={6}
                   value={coverLetter}
                   onChange={(e) => setCoverLetter(e.target.value)}
                   placeholder="Tell the school why you are a good fit for this role..."
                   className="w-full resize-none rounded-xl border border-[#dbe4ef] bg-white px-4 py-3 text-sm font-normal text-[#172033] outline-none placeholder:text-slate-400 focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
                 />
               </label>
+
+              {(job.screeningQuestions?.length ?? 0) > 0 && (
+                <div className="grid gap-3">
+                  <p className="text-sm font-black text-[#172033]">School Checklist</p>
+                  {job.screeningQuestions?.map((item) => (
+                    <label key={item.question} className="grid gap-1.5 text-sm font-semibold text-[#172033]">
+                      {item.question}
+                      {item.required && <span className="text-xs font-normal text-red-400">Required</span>}
+                      <input
+                        type={item.type === "NUMBER" ? "number" : "text"}
+                        value={screeningAnswers[item.question] ?? ""}
+                        onChange={(e) =>
+                          setScreeningAnswers((prev) => ({ ...prev, [item.question]: e.target.value }))
+                        }
+                        placeholder="Your answer"
+                        className="h-10 rounded-xl border border-[#dbe4ef] bg-white px-4 text-sm font-normal text-[#172033] outline-none placeholder:text-slate-400 focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
+                      />
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex justify-end gap-3 border-t border-[#dbe4ef] bg-[#f8fafc] px-6 py-4">
+            <div className="flex shrink-0 justify-end gap-3 border-t border-[#dbe4ef] bg-[#f8fafc] px-6 py-4">
               <button
                 type="button"
                 onClick={() => setApplyOpen(false)}

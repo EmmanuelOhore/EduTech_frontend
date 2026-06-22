@@ -33,7 +33,7 @@ import EditProfileDrawer from "../components/EditProfileDrawer";
 import TeacherHeader from "../components/TeacherHeader";
 import { useAuth } from "../lib/AuthContext";
 import { useUpdateTeacherProfileMutation, useUploadAssetMutation } from "../services/mutation";
-import { useFetchJobs, useFetchMyApplications, useFetchMyTeacherProfile, useFetchMyTeacherReferences } from "../services/queries";
+import { useFetchJobs, useFetchMyApplications, useFetchMyProfileViews, useFetchMyTeacherProfile, useFetchMyTeacherReferences } from "../services/queries";
 import type { ApplicationStatus, TeachingRecord } from "../types/TypeChecks";
 
 /* ── MOCK DATA ──────────────────────────────────────────────── */
@@ -103,7 +103,7 @@ const DocumentUploadModal = ({
           <label className={`flex cursor-pointer items-center justify-between rounded-xl border border-[#dbe4ef] bg-[#f8fafc] px-4 py-4 transition hover:border-[#184e77] hover:bg-white ${uploading ? "pointer-events-none opacity-70" : ""}`}>
             <div>
               <p className="text-sm font-bold text-[#172033]">{uploading ? "Uploading..." : ctaLabel}</p>
-              <p className="mt-1 text-[11px] text-slate-400">PDF, JPG, PNG or WEBP up to 8MB</p>
+              <p className="mt-1 text-[11px] text-slate-400">JPG, PNG or WEBP up to 8MB</p>
             </div>
             <span className="grid size-10 place-items-center rounded-xl bg-[#e0f2fe] text-[#184e77]">
               <Upload size={16} />
@@ -408,6 +408,11 @@ const TeachingRecordModal = ({ open, records, saving, onClose, onSave }: Teachin
 const Dashboard = () => {
   const [visible, setVisible] = useState(teacher.isVisible);
   const [editOpen, setEditOpen] = useState(false);
+  const [editTab, setEditTab] = useState<"personal" | "teaching" | "security">("personal");
+  const openEditProfile = (tab: "personal" | "teaching" | "security" = "personal") => {
+    setEditTab(tab);
+    setEditOpen(true);
+  };
   const [ninModalOpen, setNinModalOpen] = useState(false);
   const [recordsModalOpen, setRecordsModalOpen] = useState(false);
   const { logout, user, isAuthenticated } = useAuth();
@@ -415,11 +420,13 @@ const Dashboard = () => {
   const updateTeacherProfile = useUpdateTeacherProfileMutation();
   const applicationsQuery = useFetchMyApplications(isAuthenticated);
   const myProfileQuery = useFetchMyTeacherProfile(isAuthenticated);
+  const profileViewsQuery = useFetchMyProfileViews(isAuthenticated);
   const referencesQuery = useFetchMyTeacherReferences(isAuthenticated);
   const jobsQuery = useFetchJobs();
 
   const applications = useMemo(() => applicationsQuery.data ?? [], [applicationsQuery.data]);
   const teacherProfile = myProfileQuery.data;
+  const profileViewsSummary = profileViewsQuery.data;
   const referenceSummary = referencesQuery.data;
   const recommendedJobs = useMemo(() => jobsQuery.data?.slice(0, 3) ?? [], [jobsQuery.data]);
   const pendingCount = applications.filter((app) => app.status === "PENDING").length;
@@ -431,14 +438,19 @@ const Dashboard = () => {
     email: user?.email ?? teacher.email,
     avatar: user?.profileImage ?? teacher.avatar,
     isVerified: user?.isVerified ?? teacher.isVerified,
-    subjects: applications[0]?.subject ? [applications[0].subject] : teacher.subjects,
+    subjects: teacherProfile?.subjectExpertise?.length
+      ? teacherProfile.subjectExpertise.slice().sort((a, b) => a.rank - b.rank).map((s) => s.subject)
+      : applications[0]?.subject
+        ? [applications[0].subject]
+        : teacher.subjects,
     location: teacherProfile?.location ?? (applications[0]?.teacherLocation && applications[0].teacherLocation !== "Not set" ? applications[0].teacherLocation : teacher.location),
     level: teacherProfile?.level ?? (applications[0]?.teacherLevel && applications[0].teacherLevel !== "Not set" ? applications[0].teacherLevel : teacher.level),
   };
   const stats = [
     { label: "Total Applications", value: String(applications.length), icon: BookOpen, color: "bg-blue-500", light: "bg-blue-50 text-blue-600", trend: applications.length ? `+${applications.length}` : "0", up: applications.length > 0 },
     { label: "Pending Reviews", value: String(pendingCount), icon: Clock, color: "bg-amber-500", light: "bg-amber-50 text-amber-600", trend: String(pendingCount), up: false },
-    { label: "Accepted Applications", value: String(acceptedCount), icon: Calendar, color: "bg-purple-500", light: "bg-purple-50 text-purple-600", trend: acceptedCount ? `+${acceptedCount}` : "-", up: acceptedCount > 0 },
+    { label: "Accepted Applications", value: String(acceptedCount), icon: Calendar, color: "bg-purple-500", light: "bg-purple-50 text-purple-600", trend: acceptedCount ? `+${acceptedCount}` : "-", up: acceptedCount > 0, to: "/dashboard/accepted-applications" },
+    { label: "Profile Views", value: String(profileViewsSummary?.count ?? teacherProfile?.profileViewCount ?? 0), icon: Eye, color: "bg-[#287271]", light: "bg-teal-50 text-teal-600", trend: `${profileViewsSummary?.viewsToday ?? 0} today`, up: Boolean(profileViewsSummary?.viewsToday), to: "/dashboard/profile-views" },
     { label: "Rejected Applications", value: String(rejectedCount), icon: Eye, color: "bg-teal-500", light: "bg-teal-50 text-teal-600", trend: rejectedCount ? String(rejectedCount) : "0", up: false },
   ];
   const activities = applications.slice(0, 4).map((app) => {
@@ -480,7 +492,26 @@ const Dashboard = () => {
           ? "NIN document uploaded and pending review"
           : "No NIN verification submitted";
 
+  const kycStatus = teacherProfile?.kycStatus ?? "PENDING";
+  const kycMeta =
+    kycStatus === "APPROVED"
+      ? { label: "KYC Verified", cls: "bg-emerald-400/20 text-emerald-100", dot: "bg-emerald-300" }
+      : kycStatus === "UNDER_REVIEW"
+        ? { label: "KYC Under Review", cls: "bg-blue-400/20 text-blue-100", dot: "bg-blue-300" }
+        : kycStatus === "REJECTED"
+          ? { label: "KYC Rejected", cls: "bg-red-400/20 text-red-100", dot: "bg-red-300" }
+          : { label: "KYC Pending", cls: "bg-white/10 text-white/70", dot: "bg-amber-300" };
+
   const handleNinUpload = async (file: File) => {
+    const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+    if (!allowedTypes.has(file.type)) {
+      toast.error("Please upload the NIN document as JPG, PNG, or WEBP.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Please choose an image below 8MB.");
+      return;
+    }
     try {
       const uploaded = await uploadAsset.mutateAsync({ file, category: "teacher-nin-document" });
       await updateTeacherProfile.mutateAsync({ ninDocumentUrl: uploaded.url });
@@ -507,7 +538,11 @@ const Dashboard = () => {
       url.includes("res.cloudinary.com") && /\.pdf($|\?)/i.test(url);
 
     if (isCloudinaryPdf) {
-      toast.error("This PDF is blocked by your current Cloudinary settings. Re-upload as JPG/PNG, or enable PDF delivery in Cloudinary.");
+      const previewUrl = url
+        .replace("/upload/", "/upload/pg_1,f_jpg,q_auto/")
+        .replace(/\.pdf($|\?)/i, ".jpg$1");
+      window.open(previewUrl, "_blank", "noopener,noreferrer");
+      toast.info("Opening a preview image for this PDF. For the cleanest view, re-upload as JPG or PNG.");
       return;
     }
 
@@ -522,13 +557,14 @@ const Dashboard = () => {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         profile={teacherProfile}
+        initialTab={editTab}
       />
       <DocumentUploadModal
         open={ninModalOpen}
         title="Upload NIN Document"
         subtitle="This stays private on your dashboard and can be used for verification."
         ctaLabel={teacherProfile?.ninDocumentUrl ? "Replace NIN document" : "Choose NIN document"}
-        accept=".pdf,.png,.jpg,.jpeg,.webp"
+        accept=".png,.jpg,.jpeg,.webp"
         existingUrl={teacherProfile?.ninDocumentUrl}
         uploading={uploadAsset.isPending}
         onClose={() => setNinModalOpen(false)}
@@ -551,11 +587,11 @@ const Dashboard = () => {
         <div className="pointer-events-none absolute -bottom-16 left-0 size-72 rounded-full bg-white/5" />
 
         <div className="relative w-full px-6 py-10 lg:px-8">
-          <div className="flex flex-wrap items-start justify-between gap-8">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
 
             {/* Left: avatar + info */}
-            <div className="flex flex-wrap items-start gap-6">
-              <div className="relative">
+            <div className="flex min-w-0 flex-1 flex-col gap-6 sm:flex-row sm:items-start">
+              <div className="relative shrink-0">
                 <div className="size-24 overflow-hidden rounded-2xl ring-4 ring-white/30 shadow-xl">
                   <img src={displayTeacher.avatar} alt={displayTeacher.name} className="size-full object-cover" />
                 </div>
@@ -564,8 +600,8 @@ const Dashboard = () => {
                 </span>
               </div>
 
-              <div>
-                <div className="mb-2 flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#7dd3fc] ring-1 ring-white/20">
                     <GraduationCap size={12} />
                     Teacher Profile
@@ -578,80 +614,109 @@ const Dashboard = () => {
                   )}
                 </div>
 
-                <h1 className="text-3xl font-black text-white">{displayTeacher.name}</h1>
+                <h1 className="text-3xl font-black tracking-tight text-white">{displayTeacher.name}</h1>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {displayTeacher.subjects.map((s) => (
-                    <span key={s} className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/20">
-                      <BookOpen size={12} />
-                      {s}
-                    </span>
-                  ))}
-                  <button className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white/80 transition hover:bg-white/20">
-                    <Plus size={12} />
-                    Edit Subjects
-                  </button>
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/20">
-                    <MapPin size={12} />
+                <p className="mt-1.5 flex items-center gap-2 text-sm text-white/60">
+                  <span className="truncate">{displayTeacher.email}</span>
+                  <CheckCircle2 size={13} className="shrink-0 text-emerald-400" />
+                </p>
+
+                {/* Subjects */}
+                <div className="mt-4">
+                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-widest text-white/40">Subjects</p>
+                  <div className="flex flex-wrap gap-2">
+                    {displayTeacher.subjects.map((s) => (
+                      <span key={s} className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/20">
+                        <BookOpen size={12} />
+                        {s}
+                      </span>
+                    ))}
+                    <button
+                      onClick={() => openEditProfile("teaching")}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-white/30 px-3 py-1.5 text-sm font-semibold text-white/70 transition hover:bg-white/10 hover:text-white"
+                    >
+                      <Plus size={12} />
+                      Edit Subjects
+                    </button>
+                  </div>
+                </div>
+
+                {/* Credentials / meta */}
+                <div className="mt-3.5 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white/90 ring-1 ring-white/15">
+                    <MapPin size={12} className="text-white/60" />
                     {displayTeacher.location}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#287271]/60 px-3 py-1.5 text-sm font-bold text-white ring-1 ring-white/20">
-                    <Award size={12} />
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white/90 ring-1 ring-white/15">
+                    <Award size={12} className="text-white/60" />
                     {displayTeacher.level}
                   </span>
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-amber-400/20 px-3 py-1.5 text-sm font-bold text-amber-100 ring-1 ring-white/20">
-                    <Star size={12} />
-                    {referenceCount > 0 ? `${averageRating.toFixed(1)} rating · ${referenceCount} reference${referenceCount === 1 ? "" : "s"}` : "No references yet"}
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ring-1 ring-white/15 ${
+                      referenceCount > 0 ? "bg-amber-400/20 text-amber-100" : "bg-white/10 text-white/70"
+                    }`}
+                  >
+                    <Star size={12} className={referenceCount > 0 ? "text-amber-200" : "text-white/50"} />
+                    {referenceCount > 0
+                      ? `${averageRating.toFixed(1)} · ${referenceCount} reference${referenceCount === 1 ? "" : "s"}`
+                      : "No references yet"}
+                  </span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-semibold ring-1 ring-white/15 ${kycMeta.cls}`}>
+                    <span className={`size-2 rounded-full ${kycMeta.dot}`} />
+                    {kycMeta.label}
                   </span>
                 </div>
 
-                <p className="mt-3 flex items-center gap-2 text-sm text-white/60">
-                  <span>{displayTeacher.email}</span>
-                  <CheckCircle2 size={13} className="text-emerald-400" />
-                </p>
-
                 {/* Visibility toggle */}
-                <div className="mt-4 flex items-center gap-3">
+                <div className="mt-5 inline-flex items-center gap-3 rounded-xl bg-white/5 px-3 py-2 ring-1 ring-white/10">
                   <button
                     onClick={() => setVisible((v) => !v)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${visible ? "bg-emerald-400" : "bg-white/20"}`}
                   >
                     <span className={`inline-block size-4 rounded-full bg-white shadow transition-transform ${visible ? "translate-x-6" : "translate-x-1"}`} />
                   </button>
-                  <span className="text-sm font-semibold text-white/70">Profile Visibility</span>
-                  {visible && (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-300">
-                      <CheckCircle2 size={11} />
-                      Visible to Schools
-                    </span>
-                  )}
+                  <span className="text-sm font-semibold text-white/80">Profile Visibility</span>
+                  <span className="h-4 w-px bg-white/15" />
+                  <span className={`inline-flex items-center gap-1 text-xs font-bold ${visible ? "text-emerald-300" : "text-white/50"}`}>
+                    {visible ? <CheckCircle2 size={11} /> : <Eye size={11} />}
+                    {visible ? "Visible to Schools" : "Hidden"}
+                  </span>
                 </div>
               </div>
             </div>
 
-            {/* Right: completion ring + actions */}
-            <div className="flex flex-col items-center gap-4">
-              {/* SVG ring */}
-              <div className="relative flex items-center justify-center">
-                <svg width="96" height="96" className="-rotate-90">
-                  <circle cx="48" cy="48" r="36" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="8" />
-                  <circle
-                    cx="48" cy="48" r="36" fill="none"
-                    stroke="#7dd3fc" strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={circumference}
-                    strokeDashoffset={dashOffset}
-                    className="transition-all duration-700"
-                  />
-                </svg>
-                <div className="absolute text-center">
-                  <p className="text-xl font-black text-white leading-none">{pct}%</p>
-                  <p className="text-[10px] font-semibold text-white/60 leading-none mt-0.5">Complete</p>
+            {/* Right: completion + actions card */}
+            <div className="w-full shrink-0 rounded-2xl bg-white/10 p-5 ring-1 ring-white/15 backdrop-blur-sm lg:w-[260px]">
+              <div className="flex items-center gap-4">
+                <div className="relative flex shrink-0 items-center justify-center">
+                  <svg width="76" height="76" className="-rotate-90">
+                    <circle cx="38" cy="38" r="30" fill="none" stroke="rgba(255,255,255,0.15)" strokeWidth="7" />
+                    <circle
+                      cx="38" cy="38" r="30" fill="none"
+                      stroke="#7dd3fc" strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={2 * Math.PI * 30}
+                      strokeDashoffset={2 * Math.PI * 30 * (1 - pct / 100)}
+                      className="transition-all duration-700"
+                    />
+                  </svg>
+                  <div className="absolute text-center">
+                    <p className="text-lg font-black leading-none text-white">{pct}%</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-white">Profile strength</p>
+                  <p className="mt-0.5 text-xs text-white/60">
+                    {pct >= 100 ? "All set" : "Complete your profile"}
+                  </p>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 w-full min-w-[160px]">
+
+              <div className="my-4 h-px bg-white/15" />
+
+              <div className="flex flex-col gap-2">
                 <button
-                  onClick={() => setEditOpen(true)}
+                  onClick={() => openEditProfile("personal")}
                   className="flex h-10 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-black text-[#184e77] shadow transition hover:shadow-md"
                 >
                   <Pencil size={14} />
@@ -726,7 +791,7 @@ const Dashboard = () => {
       <div className="w-full px-6 py-10 lg:px-8">
 
         {/* ── STATS ROW ─────────────────────────────────────── */}
-        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
           {stats.map((stat) => {
             const Icon = stat.icon;
             const cardContent = (
@@ -744,10 +809,10 @@ const Dashboard = () => {
                 <div className={`absolute bottom-0 left-0 h-1 w-full ${stat.color} opacity-60`} />
               </>
             );
-            return stat.label === "Accepted Applications" ? (
+            return stat.to ? (
               <Link
                 key={stat.label}
-                to="/dashboard/accepted-applications"
+                to={stat.to}
                 className="group relative overflow-hidden rounded-2xl border border-[#dbe4ef] bg-white p-5 shadow-sm shadow-slate-900/[0.04] transition hover:shadow-md hover:shadow-slate-900/[0.07]"
               >
                 {cardContent}
@@ -1027,7 +1092,8 @@ const Dashboard = () => {
               <div className="grid grid-cols-2 gap-2 p-4">
                 {[
                   { label: "Browse Jobs", icon: Search, to: "/jobs", primary: true, action: null },
-                  { label: "Edit Profile", icon: Pencil, to: "#", primary: false, action: () => setEditOpen(true) },
+                  { label: "AI Documents", icon: Sparkles, to: "/dashboard/ai-docs", primary: false, action: null },
+                  { label: "Edit Profile", icon: Pencil, to: "#", primary: false, action: () => openEditProfile("personal") },
                   { label: "Upload Docs", icon: Upload, to: "#", primary: false, action: () => setNinModalOpen(true) },
                   { label: "Teaching Records", icon: BarChart3, to: "#", primary: false, action: () => setRecordsModalOpen(true) },
                 ].map((action) => {
