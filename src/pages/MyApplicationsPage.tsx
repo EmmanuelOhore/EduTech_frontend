@@ -45,7 +45,7 @@ const jobTypeLabel: Record<string, string> = {
 
 const jobTypeCls: Record<string, string> = {
   FULL_TIME: "bg-emerald-50 text-emerald-700",
-  PART_TIME: "bg-violet-50 text-violet-700",
+  PART_TIME: "bg-blue-50 text-blue-700",
   ROTATIONAL: "bg-amber-50 text-amber-700",
 };
 

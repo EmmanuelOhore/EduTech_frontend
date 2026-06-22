@@ -60,7 +60,7 @@ const normalizeNin = (v?: string) => {
 const levelBadge: Record<string, string> = {
   BEGINNER:     "bg-slate-100 text-slate-600",
   INTERMEDIATE: "bg-amber-50  text-amber-700",
-  EXPERT:       "bg-purple-50 text-purple-700",
+  EXPERT:       "bg-blue-50 text-blue-700",
 };
 
 // ── View Modal ─────────────────────────────────────────────────────

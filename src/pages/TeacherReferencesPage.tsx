@@ -304,6 +304,7 @@ const TeacherReferencesPage = () => {
   const deleteReference = useDeleteTeacherReferenceMutation();
 
   const [search, setSearch] = useState("");
+  const [ratingFilter, setRatingFilter] = useState(0); // 0 = all, else minimum stars
   const [panelOpen, setPanelOpen] = useState(false);
   const [page, setPage] = useState(1);
 
@@ -340,13 +341,14 @@ const TeacherReferencesPage = () => {
 
   const filtered = references.filter((ref) => {
     const q = search.toLowerCase();
-    return (
+    const matchesSearch =
       !q ||
       ref.teacherName.toLowerCase().includes(q) ||
       ref.referenceText.toLowerCase().includes(q) ||
       ref.relatedJob.toLowerCase().includes(q) ||
-      ref.givenBy.toLowerCase().includes(q)
-    );
+      ref.givenBy.toLowerCase().includes(q);
+    const matchesRating = ratingFilter === 0 || ref.rating >= ratingFilter;
+    return matchesSearch && matchesRating;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -360,32 +362,50 @@ const TeacherReferencesPage = () => {
     ? Number((references.reduce((sum, r) => sum + r.rating, 0) / references.length).toFixed(1))
     : 0;
 
+  const teachersCovered = new Set(references.map((r) => r.teacherName)).size;
+  const jobsCovered = new Set(references.map((r) => r.relatedJob)).size;
+  const acceptedTeachers = teacherOptions.length;
+
+  // Rating distribution 5★ → 1★ for the breakdown chart.
+  const distribution = [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    count: references.filter((r) => Math.round(r.rating) === star).length,
+  }));
+  const maxBar = Math.max(1, ...distribution.map((d) => d.count));
+
   const stats = [
     {
-      label: "Total References",
+      label: "Total references",
       value: references.length,
+      sub: `across ${jobsCovered} ${jobsCovered === 1 ? "role" : "roles"}`,
       icon: BookOpen,
-      gradient: "from-blue-500 to-blue-600",
-      bg: "bg-blue-50",
-      text: "text-blue-700",
+      fg: "text-[#184e77]",
+      bg: "bg-[#eef5fb]",
     },
     {
-      label: "Teachers Covered",
-      value: new Set(references.map((r) => r.teacherName)).size,
+      label: "Teachers covered",
+      value: teachersCovered,
+      sub: acceptedTeachers ? `of ${acceptedTeachers} accepted` : "no accepted yet",
+      pct: acceptedTeachers ? Math.round((teachersCovered / acceptedTeachers) * 100) : 0,
       icon: Users,
-      gradient: "from-teal-500 to-teal-600",
+      fg: "text-teal-600",
       bg: "bg-teal-50",
-      text: "text-teal-700",
     },
     {
-      label: "Average Rating",
+      label: "Average rating",
       value: averageRating || "—",
       icon: Star,
-      gradient: "from-amber-400 to-amber-500",
+      fg: "text-amber-600",
       bg: "bg-amber-50",
-      text: "text-amber-700",
-      extra: averageRating ? <StarRating rating={Math.round(averageRating)} size={12} /> : null,
+      extra: averageRating ? <StarRating rating={Math.round(averageRating)} size={13} /> : null,
     },
+  ];
+
+  const ratingFilters = [
+    { label: "All", value: 0 },
+    { label: "5★", value: 5 },
+    { label: "4★ +", value: 4 },
+    { label: "3★ +", value: 3 },
   ];
 
   return (
@@ -402,7 +422,10 @@ const TeacherReferencesPage = () => {
         {/* Page header */}
         <div className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-black text-[#172033]">Teacher References</h1>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#287271]">
+              Reputation
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-[#172033]">Teacher References</h1>
             <p className="mt-1 text-sm text-slate-500">
               Add ratings and written references for teachers your school has already accepted.
             </p>
@@ -410,60 +433,118 @@ const TeacherReferencesPage = () => {
           <button
             onClick={() => setPanelOpen(true)}
             disabled={teacherOptions.length === 0}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#184e77] to-[#1a6091] px-5 py-2.5 text-sm font-black text-white shadow-sm transition hover:shadow-md hover:opacity-90 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-[#184e77] to-[#1a6091] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:shadow-md hover:opacity-90 disabled:opacity-50"
           >
             <Plus size={16} /> Add Reference
           </button>
         </div>
 
-        {/* Stat cards */}
-        <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-            return (
-              <article
-                key={stat.label}
-                className="relative overflow-hidden rounded-2xl border border-[#dbe4ef] bg-white p-5 shadow-sm"
-              >
-                {/* Decorative gradient blob */}
-                <div className={`absolute -right-4 -top-4 size-20 rounded-full bg-gradient-to-br ${stat.gradient} opacity-10`} />
-                <div className="relative flex items-start justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{stat.label}</p>
-                    <p className="mt-2 text-4xl font-black text-[#172033]">{stat.value}</p>
-                    {stat.extra && <div className="mt-2">{stat.extra}</div>}
+        {/* Stats + rating breakdown */}
+        <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Three refined metric cards */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 lg:col-span-2">
+            {stats.map((stat) => {
+              const Icon = stat.icon;
+              return (
+                <article
+                  key={stat.label}
+                  className="flex flex-col justify-between rounded-2xl border border-[#e4ebf3] bg-white p-4 shadow-sm shadow-slate-900/[0.03]"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                      {stat.label}
+                    </p>
+                    <span className={`grid size-8 shrink-0 place-items-center rounded-lg ${stat.bg} ${stat.fg}`}>
+                      <Icon size={15} />
+                    </span>
                   </div>
-                  <span className={`grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br ${stat.gradient}`}>
-                    <Icon size={18} className="text-white" />
-                  </span>
-                </div>
-              </article>
-            );
-          })}
+                  <p className="mt-3 text-3xl font-bold text-[#172033]">{stat.value}</p>
+                  {stat.extra && <div className="mt-1.5">{stat.extra}</div>}
+                  {stat.sub && <p className="mt-1 text-xs text-slate-400">{stat.sub}</p>}
+                  {typeof stat.pct === "number" && (
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="h-full rounded-full bg-teal-500"
+                        style={{ width: `${Math.min(100, stat.pct)}%` }}
+                      />
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+
+          {/* Rating breakdown */}
+          <article className="rounded-2xl border border-[#e4ebf3] bg-white p-4 shadow-sm shadow-slate-900/[0.03]">
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Rating breakdown
+            </p>
+            {references.length === 0 ? (
+              <p className="text-xs text-slate-400">No ratings yet.</p>
+            ) : (
+              <div className="grid gap-2">
+                {distribution.map((d) => (
+                  <button
+                    key={d.star}
+                    onClick={() => { setRatingFilter(ratingFilter === d.star ? 0 : d.star); setPage(1); }}
+                    className="group flex items-center gap-2 text-left"
+                  >
+                    <span className="flex w-7 shrink-0 items-center gap-0.5 text-xs font-medium text-slate-500">
+                      {d.star}
+                      <Star size={10} className="fill-amber-400 text-amber-400" />
+                    </span>
+                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
+                      <span
+                        className="block h-full rounded-full bg-amber-400 transition-all group-hover:bg-amber-500"
+                        style={{ width: `${(d.count / maxBar) * 100}%` }}
+                      />
+                    </span>
+                    <span className="w-5 shrink-0 text-right text-xs font-semibold text-slate-500">
+                      {d.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </article>
         </div>
 
-        {/* Search bar */}
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border border-[#dbe4ef] bg-white px-5 py-3.5 shadow-sm">
-          <Search size={15} className="shrink-0 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by teacher, job, school, or reference text…"
-            className="flex-1 bg-transparent text-sm text-[#172033] outline-none placeholder:text-slate-400"
-          />
-          {search && (
-            <button
-              onClick={() => { setSearch(""); setPage(1); }}
-              className="flex items-center gap-1 rounded-lg border border-[#dbe4ef] px-2.5 py-1 text-xs font-semibold text-slate-500 hover:border-red-200 hover:bg-red-50 hover:text-red-500 transition"
-            >
-              <X size={11} /> Clear
-            </button>
-          )}
-          {filtered.length > 0 && (
-            <span className="shrink-0 rounded-lg bg-[#f0f7ff] px-2.5 py-1 text-xs font-black text-[#184e77]">
-              {filtered.length} result{filtered.length !== 1 ? "s" : ""}
-            </span>
-          )}
+        {/* Toolbar: search + rating filter chips */}
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-[#e4ebf3] bg-white px-4 py-3 shadow-sm shadow-slate-900/[0.03] sm:flex-row sm:items-center">
+          <div className="flex flex-1 items-center gap-2.5 rounded-xl border border-[#e4ebf3] bg-[#f8fafc] px-3 transition focus-within:border-[#184e77]/40 focus-within:bg-white">
+            <Search size={15} className="shrink-0 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+              placeholder="Search by teacher, job, or reference text…"
+              className="h-10 flex-1 bg-transparent text-sm text-[#172033] outline-none placeholder:text-slate-400"
+            />
+            {search && (
+              <button onClick={() => { setSearch(""); setPage(1); }} className="text-slate-400 hover:text-slate-600">
+                <X size={14} />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            {ratingFilters.map((rf) => (
+              <button
+                key={rf.value}
+                onClick={() => { setRatingFilter(rf.value); setPage(1); }}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  ratingFilter === rf.value
+                    ? "bg-[#184e77] text-white"
+                    : "border border-[#e4ebf3] bg-white text-slate-500 hover:border-[#184e77]/30 hover:text-[#184e77]"
+                }`}
+              >
+                {rf.label}
+              </button>
+            ))}
+          </div>
+
+          <span className="shrink-0 rounded-lg bg-[#eef5fb] px-2.5 py-1.5 text-xs font-bold text-[#184e77]">
+            {filtered.length} result{filtered.length !== 1 ? "s" : ""}
+          </span>
         </div>
 
         {/* Content */}

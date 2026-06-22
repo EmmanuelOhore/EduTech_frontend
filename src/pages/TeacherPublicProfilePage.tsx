@@ -1,14 +1,18 @@
 import {
   ArrowLeft,
+  Award,
   BookOpen,
   Briefcase,
+  Building2,
   Calendar,
   CheckCircle2,
   Clock,
   GraduationCap,
+  Layers,
   Mail,
   MapPin,
   ShieldCheck,
+  Sparkles,
   Star,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
@@ -112,6 +116,32 @@ const TeacherPublicProfilePage = () => {
   }
 
   const initials = `${profile.firstName.charAt(0)}${profile.lastName?.charAt(0) ?? ""}`;
+
+  // Derived career insights
+  const records = [...(profile.teachingRecords ?? [])].sort(
+    (a, b) => (b.endYear ?? 9999) - (a.endYear ?? 9999) || b.startYear - a.startYear,
+  );
+  const expertise = [...(profile.subjectExpertise ?? [])].sort((a, b) => a.rank - b.rank);
+  const earliestYear = records.length ? Math.min(...records.map((r) => r.startYear)) : null;
+  const yearsExperience = earliestYear
+    ? Math.max(1, new Date().getFullYear() - earliestYear)
+    : null;
+  const schoolsCount = new Set(records.map((r) => r.schoolName)).size;
+
+  const statChips = [
+    {
+      icon: Award,
+      label: "Experience",
+      value: yearsExperience ? `${yearsExperience}+ yrs` : "—",
+    },
+    { icon: Building2, label: "Schools taught", value: schoolsCount || "—" },
+    { icon: Layers, label: "Subjects", value: expertise.length || "—" },
+    {
+      icon: Star,
+      label: "Avg rating",
+      value: references.length ? averageRating.toFixed(1) : "—",
+    },
+  ];
 
   return (
     <main className="min-h-screen bg-[#f6f8fb] text-[#172033]">
@@ -244,8 +274,31 @@ const TeacherPublicProfilePage = () => {
       {/* ── Body ──────────────────────────────────────────────── */}
       <div className="w-full px-6 py-8 lg:px-10">
 
-        {/* About + Profile Details */}
-        <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+        {/* At-a-glance stats */}
+        <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {statChips.map((s) => (
+            <div
+              key={s.label}
+              className="flex items-center gap-3 rounded-2xl border border-[#e4ebf3] bg-white px-4 py-3.5 shadow-sm"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#eef5fb] text-[#184e77]">
+                <s.icon size={18} />
+              </span>
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                  {s.label}
+                </p>
+                <p className="text-lg font-bold text-[#172033]">{s.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Main column + sticky sidebar */}
+        <div className="grid items-start gap-5 lg:grid-cols-[1.6fr_1fr]">
+
+          {/* LEFT — main column */}
+          <div className="grid gap-5">
 
           {/* About */}
           <section className="rounded-2xl border border-[#dbe4ef] bg-white p-6 shadow-sm">
@@ -262,7 +315,86 @@ const TeacherPublicProfilePage = () => {
                 </span>
               )}
             </p>
+
+            {expertise.length > 0 && (
+              <div className="mt-6 border-t border-[#f1f5f9] pt-5">
+                <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                  <Sparkles size={13} className="text-[#287271]" />
+                  Subject expertise
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {expertise.map((e) => (
+                    <span
+                      key={e.subject}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[#e4ebf3] bg-[#f8fafc] py-1.5 pl-1.5 pr-3 text-sm font-medium text-[#172033]"
+                    >
+                      <span className="grid size-6 place-items-center rounded-lg bg-[#184e77] text-[11px] font-bold text-white">
+                        {e.rank}
+                      </span>
+                      {e.subject}
+                    </span>
+                  ))}
+                </div>
+                <p className="mt-2 text-[11px] text-slate-400">
+                  Ranked by the teacher&apos;s strongest subjects first.
+                </p>
+              </div>
+            )}
           </section>
+
+          {/* Career timeline */}
+          <section className="rounded-2xl border border-[#dbe4ef] bg-white p-6 shadow-sm">
+            <h2 className="flex items-center gap-2 text-base font-bold text-[#172033]">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-[#eef6fb]">
+                <GraduationCap size={13} className="text-[#184e77]" />
+              </span>
+              {profile.staffRole === "TEACHER" ? "Teaching Records" : "Work Records"}
+            </h2>
+            {records.length === 0 ? (
+              <div className="mt-4 rounded-xl bg-[#f8fafc] px-4 py-10 text-center text-sm text-slate-400">
+                No records added yet.
+              </div>
+            ) : (
+              <ol className="mt-5 ml-1 border-l-2 border-[#e4ebf3]">
+                {records.map((record, index) => {
+                  const current = !record.endYear;
+                  return (
+                    <li key={`${record.schoolName}-${index}`} className="relative pb-6 pl-6 last:pb-0">
+                      <span
+                        className={`absolute -left-[9px] top-1 grid size-4 place-items-center rounded-full ring-4 ring-white ${
+                          current ? "bg-[#287271]" : "bg-[#184e77]"
+                        }`}
+                      >
+                        <span className="size-1.5 rounded-full bg-white" />
+                      </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-bold text-[#172033]">{record.roleTitle}</p>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
+                            current ? "bg-[#287271]/10 text-[#287271]" : "bg-[#eef5fb] text-[#184e77]"
+                          }`}
+                        >
+                          {record.startYear} – {record.endYear ?? "Present"}
+                        </span>
+                      </div>
+                      <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-slate-500">
+                        <Building2 size={12} className="text-slate-400" />
+                        {record.schoolName}
+                      </p>
+                      {record.description && (
+                        <p className="mt-2.5 text-sm leading-[1.7] text-slate-500">{record.description}</p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </section>
+
+          </div>
+
+          {/* RIGHT — sticky sidebar */}
+          <div className="grid gap-5 lg:sticky lg:top-6">
 
           {/* Profile Details */}
           <section className="rounded-2xl border border-[#dbe4ef] bg-white p-6 shadow-sm">
@@ -338,9 +470,7 @@ const TeacherPublicProfilePage = () => {
               </div>
             </div>
           </section>
-        </div>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+          {/* Professional Documents */}
           <section className="rounded-2xl border border-[#dbe4ef] bg-white p-6 shadow-sm">
             <h2 className="flex items-center gap-2 text-base font-bold text-[#172033]">
               <span className="flex size-7 items-center justify-center rounded-lg bg-[#eef6fb]">
@@ -367,38 +497,7 @@ const TeacherPublicProfilePage = () => {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-[#dbe4ef] bg-white p-6 shadow-sm">
-            <h2 className="flex items-center gap-2 text-base font-bold text-[#172033]">
-              <span className="flex size-7 items-center justify-center rounded-lg bg-[#eef6fb]">
-                <GraduationCap size={13} className="text-[#184e77]" />
-              </span>
-              {profile.staffRole === "TEACHER" ? "Teaching Records" : "Work Records"}
-            </h2>
-            {profile.teachingRecords.length === 0 ? (
-              <div className="mt-4 rounded-xl bg-[#f8fafc] px-4 py-10 text-center text-sm text-slate-400">
-                No records added yet.
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                {profile.teachingRecords.map((record, index) => (
-                  <article key={`${record.schoolName}-${index}`} className="rounded-xl border border-[#eef2f7] bg-[#f8fafc] p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-bold text-[#172033]">{record.roleTitle}</p>
-                        <p className="mt-0.5 text-xs text-slate-500">{record.schoolName}</p>
-                      </div>
-                      <span className="rounded-lg bg-white px-2.5 py-1 text-[11px] font-bold text-slate-500">
-                        {record.startYear} - {record.endYear ?? "Present"}
-                      </span>
-                    </div>
-                    {record.description && (
-                      <p className="mt-3 text-sm leading-6 text-slate-500">{record.description}</p>
-                    )}
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
+          </div>
         </div>
 
         {/* Ratings & References */}

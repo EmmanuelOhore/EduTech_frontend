@@ -62,7 +62,7 @@ const ninStyle: Record<NinStatus, { bg: string; icon: typeof CheckCircle2; label
 const levelStyle: Record<TeacherLevel, string> = {
   Beginner: "bg-slate-100 text-slate-600",
   Intermediate: "bg-amber-50 text-amber-700",
-  Expert: "bg-purple-50 text-purple-700",
+  Expert: "bg-blue-50 text-blue-700",
 };
 
 const ITEMS_PER_PAGE = 7;
@@ -176,7 +176,7 @@ const TeacherProfileModal = ({
               <div className="mt-5 grid grid-cols-2 gap-3">
                 {[
                   { to: `/school/jobs/${teacher.latestJobId}`, icon: Star, tone: "bg-sky-50 text-sky-600", label: "Latest Role", value: teacher.latestJobTitle, clamp: true },
-                  { icon: ClipboardList, tone: "bg-violet-50 text-violet-600", label: "Accepted Roles", value: `${teacher.records} job${teacher.records === 1 ? "" : "s"}` },
+                  { icon: ClipboardList, tone: "bg-blue-50 text-blue-600", label: "Accepted Roles", value: `${teacher.records} job${teacher.records === 1 ? "" : "s"}` },
                   { icon: GraduationCap, tone: "bg-amber-50 text-amber-600", label: "Joined", value: teacher.joined },
                   { icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-600", label: "Availability", value: teacher.available === false ? "Not available" : "Available" },
                 ].map((tile) => {
@@ -269,7 +269,7 @@ const TeacherProfileModal = ({
               { icon: Mail, tone: "bg-sky-50 text-sky-600", label: "Email", value: teacher.email },
               { icon: Star, tone: "bg-amber-50 text-amber-600", label: "Teacher Level", value: teacher.level },
               { icon: MapPin, tone: "bg-rose-50 text-rose-600", label: "Teacher Location", value: teacher.location },
-              { icon: BookOpen, tone: "bg-violet-50 text-violet-600", label: "Primary Subject", value: teacher.subject },
+              { icon: BookOpen, tone: "bg-blue-50 text-blue-600", label: "Primary Subject", value: teacher.subject },
               { icon: GraduationCap, tone: "bg-teal-50 text-teal-600", label: "Joined", value: teacher.joined },
               { icon: CheckCircle2, tone: "bg-emerald-50 text-emerald-600", label: "Accepted Jobs", value: String(teacher.records) },
             ].map((item) => {

@@ -56,7 +56,7 @@ const PLANS: {
     tagline: "The complete managed experience with welfare benefits.",
     price: "Revenue share + benefits margin",
     icon: Crown,
-    accent: "#7c3aed",
+    accent: "#2563eb",
     features: [
       "Everything in Enterprise",
       "Instructor benefits: HMO & savings",

@@ -9,7 +9,6 @@ import {
   RefreshCw,
   Settings,
   ShieldCheck,
-  Wrench,
   Users,
 } from "lucide-react";
 import { useAuth } from "../lib/AuthContext";
@@ -26,7 +25,6 @@ const navItems = [
   { label: "Staff", path: "/admin/staff", icon: Users },
   { label: "Applications", path: "/admin/applications", icon: ClipboardList },
   { label: "Replacements", path: "/admin/replacements", icon: RefreshCw },
-  { label: "Admin Tools", path: "/admin/tools", icon: Wrench },
   { label: "Settings", path: "/admin/settings", icon: Settings },
 ];
 

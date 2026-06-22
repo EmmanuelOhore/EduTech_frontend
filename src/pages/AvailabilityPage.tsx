@@ -205,7 +205,7 @@ export default function AvailabilityPage() {
                       )}
                       <div className="flex flex-wrap gap-1 pt-1">
                         {slot.availableForWeekend && <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700">Weekend OK</span>}
-                        {slot.availableForEvening && <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">Evening OK</span>}
+                        {slot.availableForEvening && <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">Evening OK</span>}
                       </div>
                     </div>
                   ) : (

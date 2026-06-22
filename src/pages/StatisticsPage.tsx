@@ -330,7 +330,7 @@ const StatisticsPage = () => {
       counts.set(key, (counts.get(key) ?? 0) + 1);
     });
     const total = Array.from(counts.values()).reduce((sum, value) => sum + value, 0);
-    const palette = ["#184e77", "#287271", "#6366f1", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4", "#f97316"];
+    const palette = ["#184e77", "#287271", "#3b82f6", "#10b981", "#f59e0b", "#0891b2", "#ec4899", "#06b6d4", "#f97316"];
     return Array.from(counts.entries())
       .map(([name, count], index) => ({
         name,
@@ -368,10 +368,10 @@ const StatisticsPage = () => {
       buckets.set(app.teacherLevel, (buckets.get(app.teacherLevel) ?? 0) + 1);
     });
     const palette: Record<string, string> = {
-      EXPERT: "#8b5cf6",
+      EXPERT: "#0891b2",
       INTERMEDIATE: "#f59e0b",
       BEGINNER: "#94a3b8",
-      Expert: "#8b5cf6",
+      Expert: "#0891b2",
       Intermediate: "#f59e0b",
       Beginner: "#94a3b8",
     };
@@ -439,8 +439,8 @@ const StatisticsPage = () => {
       value: String(applications.length),
       change: changeMeta(applicationsCurrent.length, applicationsPrevious.length),
       icon: GraduationCap,
-      iconBg: "bg-purple-500",
-      accent: "bg-purple-500",
+      iconBg: "bg-blue-500",
+      accent: "bg-blue-500",
       sub: "received across your jobs",
     },
     {
@@ -465,7 +465,7 @@ const StatisticsPage = () => {
 
   const secondaryStats = [
     { label: "Fill Rate", value: `${fillRate}%`, note: "accepted against open slots", icon: Zap, iconBg: "bg-emerald-500" },
-    { label: "Avg. Time to Hire", value: avgTimeToHire, note: "from posting to accepted application", icon: Clock, iconBg: "bg-indigo-500" },
+    { label: "Avg. Time to Hire", value: avgTimeToHire, note: "from posting to accepted application", icon: Clock, iconBg: "bg-blue-500" },
     { label: "Verified Teachers", value: String(verifiedRoster), note: "accepted teachers with verified accounts", icon: ShieldCheck, iconBg: "bg-pink-500" },
     { label: "Open Slots", value: String(totalOpenSlots), note: "positions currently published", icon: Building2, iconBg: "bg-cyan-500" },
   ];
@@ -652,7 +652,7 @@ const StatisticsPage = () => {
                 },
                 {
                   icon: Zap,
-                  iconBg: "bg-purple-50 text-purple-600",
+                  iconBg: "bg-blue-50 text-blue-600",
                   label: "Fill Rate",
                   value: `${fillRate}%`,
                   sub: "of available slots filled",

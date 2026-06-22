@@ -27,7 +27,7 @@ const roleTone: Record<StaffRole, string> = {
   TEACHER: "bg-[#e0f2fe] text-[#184e77]",
   DRIVER: "bg-amber-50 text-amber-700",
   JANITOR: "bg-teal-50 text-[#287271]",
-  ADMIN_STAFF: "bg-violet-50 text-violet-700",
+  ADMIN_STAFF: "bg-blue-50 text-blue-700",
 };
 
 const kycTone: Record<KycStatus, string> = {

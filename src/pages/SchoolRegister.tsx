@@ -6,9 +6,7 @@ import {
   Building2,
   CheckCircle2,
   ClipboardList,
-  Eye,
   FileText,
-  LayoutDashboard,
   MapPin,
   Phone,
   ShieldCheck,
@@ -21,6 +19,7 @@ import { Link, useNavigate } from "react-router-dom";
 import * as Yup from "yup";
 import { useSchoolRegisterMutation, useUploadAssetMutation } from "../services/mutation";
 import type { SchoolRegisterFormValues } from "../types/TypeChecks";
+import { nigeriaLocations, stateOptions } from "../lib/nigeriaLocations";
 import Inputfield from "../ui/inputfield";
 
 const benefits = [
@@ -47,6 +46,7 @@ const schoolType = [
 const initialValues: SchoolRegisterFormValues = {
   firstName: "", lastName: "", email: "", password: "",
   confirmPassword: "", schoolName: "", schoolLocation: "",
+  schoolState: "", schoolLga: "", schoolAddress: "",
   schoolType: "", phone: "", schoolLogoUrl: "", verificationDocumentUrl: "",
   utilityBillUrl: "", authorizationLetterUrl: "", agreeToTerms: false,
 };
@@ -60,7 +60,8 @@ const validationSchema = Yup.object({
     .oneOf([Yup.ref("password")], "Passwords must match")
     .required("Confirm your password"),
   schoolName: Yup.string().required("School name is required"),
-  schoolLocation: Yup.string().required("School location is required"),
+  schoolState: Yup.string().required("Select your state"),
+  schoolLga: Yup.string().required("Select your LGA"),
   schoolType: Yup.string()
     .oneOf(["PRIMARY", "SECONDARY", "TERTIARY", "VOCATIONAL", "OTHER"])
     .required("Select school type"),
@@ -213,24 +214,6 @@ const SchoolRegister = () => {
           <Link to="/" className="text-xs font-bold text-white/70">← Back</Link>
         </div>
 
-        {/* ── DEMO BANNER ─────────────────────────────────── */}
-        <div className="border-b border-[#dbe4ef] bg-[#e0f2fe] px-6 py-3 sm:px-10 xl:px-16">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#184e77]">
-              <Eye size={13} />
-              <span>Demo mode · Skip registration and preview the admin dashboard directly</span>
-            </div>
-            <Link
-              to="/school/dashboard"
-              className="flex items-center gap-1.5 rounded-xl bg-[#184e77] px-4 py-2 text-xs font-black text-white transition hover:bg-[#1a6091]"
-            >
-              <LayoutDashboard size={13} />
-              Enter School Dashboard
-              <ArrowRight size={12} />
-            </Link>
-          </div>
-        </div>
-
         <div className="flex flex-1 flex-col px-6 py-10 sm:px-10 xl:px-16 2xl:px-20">
 
           {/* Form header */}
@@ -278,7 +261,12 @@ const SchoolRegister = () => {
                   email: values.email,
                   password: values.password,
                   schoolName: values.schoolName,
-                  schoolLocation: values.schoolLocation,
+                  schoolLocation:
+                    values.schoolAddress.trim() ||
+                    `${values.schoolLga}, ${values.schoolState}`,
+                  schoolState: values.schoolState,
+                  schoolLga: values.schoolLga,
+                  schoolAddress: values.schoolAddress.trim() || undefined,
                   schoolType: values.schoolType as Exclude<SchoolRegisterFormValues["schoolType"], "">,
                   phone: values.phone || undefined,
                   schoolLogoUrl: values.schoolLogoUrl || undefined,
@@ -319,19 +307,34 @@ const SchoolRegister = () => {
                       </label>
                     </div>
 
-                    <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
-                      School Location
-                      <div className="relative">
-                        <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <input
-                          type="text"
-                          placeholder="City, State"
-                          value={values.schoolLocation}
-                          onChange={(e) => setFieldValue("schoolLocation", e.target.value)}
-                          className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
-                        />
-                      </div>
-                    </label>
+                    <SelectField
+                      label="State"
+                      name="schoolState"
+                      value={values.schoolState}
+                      onChange={(v) => {
+                        setFieldValue("schoolState", v);
+                        setFieldValue("schoolLga", "");
+                      }}
+                    >
+                      <option value="">Select state</option>
+                      {stateOptions.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </SelectField>
+
+                    <SelectField
+                      label="LGA"
+                      name="schoolLga"
+                      value={values.schoolLga}
+                      onChange={(v) => setFieldValue("schoolLga", v)}
+                    >
+                      <option value="">
+                        {values.schoolState ? "Select LGA" : "Select a state first"}
+                      </option>
+                      {(nigeriaLocations[values.schoolState] ?? []).map((lga) => (
+                        <option key={lga} value={lga}>{lga}</option>
+                      ))}
+                    </SelectField>
 
                     <SelectField
                       label="School Type"
@@ -357,6 +360,23 @@ const SchoolRegister = () => {
                           className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
                         />
                       </div>
+                    </label>
+
+                    <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700 sm:col-span-2">
+                      Street Address (Optional)
+                      <div className="relative">
+                        <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="text"
+                          placeholder="e.g. 12 Allen Avenue, Ikeja"
+                          value={values.schoolAddress}
+                          onChange={(e) => setFieldValue("schoolAddress", e.target.value)}
+                          className="h-10 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm outline-none transition focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
+                        />
+                      </div>
+                      <span className="text-[11px] font-normal text-slate-400">
+                        Helps teachers see exactly how far your school is.
+                      </span>
                     </label>
                   </div>
                 </div>

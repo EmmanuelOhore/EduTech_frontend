@@ -35,7 +35,6 @@ import AdminSchoolsPage from "./pages/AdminSchoolsPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminStaffPage from "./pages/AdminStaffPage";
 import AdminSubjectsPage from "./pages/AdminSubjectsPage";
-import AdminToolsPage from "./pages/AdminToolsPage";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ProtectedRoute from "./lib/ProtectedRoute";
 
@@ -79,7 +78,6 @@ function App() {
           <Route path="admin/applications" element={<AdminApplicationsPage />} />
           <Route path="admin/replacements" element={<AdminReplacementsPage />} />
           <Route path="admin/subjects" element={<AdminSubjectsPage />} />
-          <Route path="admin/tools" element={<AdminToolsPage />} />
           <Route path="admin/settings" element={<AdminSettingsPage />} />
         </Route>
         <Route element={<ProtectedRoute allowedRoles={["INSTITUTION_ADMIN"]} />}>

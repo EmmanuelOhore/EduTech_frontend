@@ -27,7 +27,7 @@ const TYPE_DOT: Record<string, string> = {
   APPLICATION_REJECTED: "bg-red-400",
   ASSIGNMENT_CREATED: "bg-teal-500",
   ASSIGNMENT_REMOVED: "bg-amber-500",
-  KYC_STATUS: "bg-purple-500",
+  KYC_STATUS: "bg-blue-500",
   PROFILE_VIEWED: "bg-[#287271]",
   GENERAL: "bg-slate-400",
 };

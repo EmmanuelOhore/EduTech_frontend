@@ -36,7 +36,7 @@ const planTone = {
   NONE: "bg-slate-100 text-slate-500",
   BASIC: "bg-sky-50 text-[#184e77]",
   ENTERPRISE: "bg-teal-50 text-[#287271]",
-  PRO: "bg-violet-50 text-violet-700",
+  PRO: "bg-blue-50 text-blue-700",
 };
 
 const getInitials = (name: string) =>

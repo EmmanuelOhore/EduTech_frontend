@@ -67,7 +67,7 @@ const typeStyle: Record<string, string> = {
 const levelStyle: Record<string, string> = {
   BEGINNER:     "bg-slate-100  text-slate-600",
   INTERMEDIATE: "bg-amber-50   text-amber-700",
-  EXPERT:       "bg-purple-50  text-purple-700",
+  EXPERT:       "bg-blue-50  text-blue-700",
 };
 
 const TYPE_LABELS: Record<Job["employmentType"], string> = {
@@ -961,7 +961,7 @@ const JobManagementPage = () => {
             { label: "Total Jobs",    value: jobs.length,                                          color: "bg-blue-500" },
             { label: "Active",        value: jobs.filter((j) => j.isActive).length,    color: "bg-emerald-500" },
             { label: "Draft",         value: jobs.filter((j) => !j.isActive).length,   color: "bg-slate-400" },
-            { label: "Total Applicants", value: jobs.reduce((a, j) => a + (j.applicants ?? 0), 0), color: "bg-purple-500" },
+            { label: "Total Applicants", value: jobs.reduce((a, j) => a + (j.applicants ?? 0), 0), color: "bg-blue-500" },
           ].map((s) => (
             <div key={s.label} className="flex items-center gap-4 rounded-2xl border border-[#dbe4ef] bg-white px-5 py-4 shadow-sm shadow-slate-900/[0.04]">
               <span className={`grid size-10 shrink-0 place-items-center rounded-xl ${s.color} shadow-sm`}>

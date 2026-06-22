@@ -42,7 +42,7 @@ import {
 const quickLinks = [
   { label: "Job Management",    icon: BriefcaseBusiness, to: "/school/jobs",         desc: "Create, edit, and manage school job postings for teachers.",          color: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white" },
   { label: "Teacher Profiles",  icon: Users,             to: "/school/teachers",     desc: "Browse and review teacher profiles, qualifications, and certificates.", color: "bg-teal-50 text-teal-600 group-hover:bg-teal-600 group-hover:text-white" },
-  { label: "Applications",      icon: ClipboardList,     to: "/school/applications", desc: "Review, approve, or reject teacher applications for posted jobs.",     color: "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" },
+  { label: "Applications",      icon: ClipboardList,     to: "/school/applications", desc: "Review, approve, or reject teacher applications for posted jobs.",     color: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white" },
   { label: "Statistics",        icon: BarChart3,         to: "/school/statistics",   desc: "View analytics and insights on jobs, applications, and profiles.",    color: "bg-orange-50 text-orange-600 group-hover:bg-orange-600 group-hover:text-white" },
   { label: "School Management", icon: School,            to: "/school/profile",      desc: "Update school details, location, and institution information.",       color: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white" },
 ];
@@ -263,7 +263,7 @@ const SchoolAdminDashboard = () => {
       text: `Reference added for ${reference.teacherName}`,
       date: reference.date,
       status: "Reference",
-      color: "bg-purple-50 text-purple-700 border-purple-200",
+      color: "bg-blue-50 text-blue-700 border-blue-200",
     }));
 
     return [...applicationActivities, ...referenceActivities]
@@ -286,7 +286,7 @@ const SchoolAdminDashboard = () => {
           slots: job.slots ?? 1,
           levelColor:
             job.level === "EXPERT"
-              ? "bg-purple-50 text-purple-700"
+              ? "bg-blue-50 text-blue-700"
               : job.level === "INTERMEDIATE"
                 ? "bg-amber-50 text-amber-700"
                 : "bg-emerald-50 text-emerald-700",
@@ -303,13 +303,13 @@ const SchoolAdminDashboard = () => {
   const primaryStats: PrimaryStat[] = [
     { label: "Total Jobs", value: totalJobs, change: `${activeJobs} active`, isUp: true, sub: "Posted by your school", icon: BriefcaseBusiness, iconBg: "bg-blue-500", accent: "bg-blue-500", progress: totalJobs > 0 ? Math.min(100, Math.round((activeJobs / totalJobs) * 100)) : 0, to: "/school/jobs" },
     { label: "Active Teachers", value: acceptedTeachers, change: references.length ? `${references.length} references` : "No references yet", isUp: true, sub: "Accepted into your school", icon: Users, iconBg: "bg-teal-500", accent: "bg-teal-500", progress: acceptedTeachers > 0 ? Math.min(100, Math.round((ninVerified / acceptedTeachers) * 100)) : 0, to: "/school/teachers" },
-    { label: "Total Applications", value: totalApplications, change: applicationsLast30.length ? `+${applicationsLast30.length} recent` : "0 recent", isUp: totalApplications > 0, sub: "Across your job listings", icon: ClipboardList, iconBg: "bg-purple-500", accent: "bg-purple-500", progress: totalApplications > 0 ? Math.min(100, Math.round((pendingReviews / totalApplications) * 100)) : 0, to: "/school/applications" },
+    { label: "Total Applications", value: totalApplications, change: applicationsLast30.length ? `+${applicationsLast30.length} recent` : "0 recent", isUp: totalApplications > 0, sub: "Across your job listings", icon: ClipboardList, iconBg: "bg-blue-500", accent: "bg-blue-500", progress: totalApplications > 0 ? Math.min(100, Math.round((pendingReviews / totalApplications) * 100)) : 0, to: "/school/applications" },
     { label: "Pending Reviews", value: pendingReviews, change: pendingReviews ? `${pendingReviews} waiting` : "All reviewed", isUp: false, sub: "Needs attention", icon: FileText, iconBg: "bg-orange-500", accent: "bg-orange-400", progress: totalApplications > 0 ? Math.min(100, Math.round((pendingReviews / totalApplications) * 100)) : 0, to: "/school/applications" },
   ];
 
   const secondaryStats: SecondaryStat[] = [
     { label: "NIN Verified", value: `${ninVerified}/${acceptedTeachers || 0}`, note: "of accepted teachers", icon: ShieldCheck, iconBg: "bg-emerald-500" },
-    { label: "Active Jobs", value: activeJobs, note: "currently open", icon: GraduationCap, iconBg: "bg-indigo-500" },
+    { label: "Active Jobs", value: activeJobs, note: "currently open", icon: GraduationCap, iconBg: "bg-blue-500" },
     { label: "References", value: references.length, note: "published by your school", icon: BookOpen, iconBg: "bg-pink-500" },
     { label: "School Status", value: institution?.isVerified ? "Verified" : "Pending", note: institution?.type ? `${institution.type.toLowerCase()} institution` : "institution", icon: Building2, iconBg: "bg-cyan-500" },
   ];

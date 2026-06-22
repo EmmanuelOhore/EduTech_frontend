@@ -88,7 +88,7 @@ const ProfileViewsPage = () => {
               <p className="mt-1 text-sm font-semibold text-slate-500">Views today</p>
             </article>
             <article className="rounded-2xl border border-[#dbe4ef] bg-white p-5 shadow-sm shadow-slate-900/[0.04]">
-              <span className="grid size-11 place-items-center rounded-xl bg-violet-50 text-violet-600">
+              <span className="grid size-11 place-items-center rounded-xl bg-blue-50 text-blue-600">
                 <Users size={19} />
               </span>
               <p className="mt-4 text-3xl font-black">{summary?.uniqueViewers ?? 0}</p>

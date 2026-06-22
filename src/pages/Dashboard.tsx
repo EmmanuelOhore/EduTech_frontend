@@ -449,7 +449,7 @@ const Dashboard = () => {
   const stats = [
     { label: "Total Applications", value: String(applications.length), icon: BookOpen, color: "bg-blue-500", light: "bg-blue-50 text-blue-600", trend: applications.length ? `+${applications.length}` : "0", up: applications.length > 0 },
     { label: "Pending Reviews", value: String(pendingCount), icon: Clock, color: "bg-amber-500", light: "bg-amber-50 text-amber-600", trend: String(pendingCount), up: false },
-    { label: "Accepted Applications", value: String(acceptedCount), icon: Calendar, color: "bg-purple-500", light: "bg-purple-50 text-purple-600", trend: acceptedCount ? `+${acceptedCount}` : "-", up: acceptedCount > 0, to: "/dashboard/accepted-applications" },
+    { label: "Accepted Applications", value: String(acceptedCount), icon: Calendar, color: "bg-blue-500", light: "bg-blue-50 text-blue-600", trend: acceptedCount ? `+${acceptedCount}` : "-", up: acceptedCount > 0, to: "/dashboard/accepted-applications" },
     { label: "Profile Views", value: String(profileViewsSummary?.count ?? teacherProfile?.profileViewCount ?? 0), icon: Eye, color: "bg-[#287271]", light: "bg-teal-50 text-teal-600", trend: `${profileViewsSummary?.viewsToday ?? 0} today`, up: Boolean(profileViewsSummary?.viewsToday), to: "/dashboard/profile-views" },
     { label: "Rejected Applications", value: String(rejectedCount), icon: Eye, color: "bg-teal-500", light: "bg-teal-50 text-teal-600", trend: rejectedCount ? String(rejectedCount) : "0", up: false },
   ];
@@ -963,7 +963,7 @@ const Dashboard = () => {
             {/* Activity Feed */}
             <section className="rounded-2xl border border-[#dbe4ef] bg-white shadow-sm shadow-slate-900/[0.04]">
               <div className="flex items-center gap-3 border-b border-[#f1f5f9] px-6 py-4">
-                <span className="grid size-9 place-items-center rounded-xl bg-purple-50 text-purple-500">
+                <span className="grid size-9 place-items-center rounded-xl bg-blue-50 text-blue-500">
                   <Zap size={16} />
                 </span>
                 <div>
@@ -1193,7 +1193,7 @@ const Dashboard = () => {
               recommendedJobs.map((job, idx) => {
                 const typeColors: Record<string, string> = {
                   FULL_TIME: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100",
-                  PART_TIME: "bg-violet-50 text-violet-700 ring-1 ring-violet-100",
+                  PART_TIME: "bg-blue-50 text-blue-700 ring-1 ring-blue-100",
                   ROTATIONAL: "bg-amber-50 text-amber-700 ring-1 ring-amber-100",
                 };
                 const accentBg = idx === 0 ? "from-[#184e77]/5 to-transparent" : idx === 1 ? "from-[#287271]/5 to-transparent" : "from-amber-400/5 to-transparent";

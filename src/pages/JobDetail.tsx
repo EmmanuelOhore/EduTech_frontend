@@ -222,7 +222,7 @@ const TYPE_LABELS: Record<string, string> = {
 const LEVEL_COLORS: Record<string, string> = {
   BEGINNER: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   INTERMEDIATE: "bg-amber-50 text-amber-700 border border-amber-200",
-  EXPERT: "bg-purple-50 text-purple-700 border border-purple-200",
+  EXPERT: "bg-blue-50 text-blue-700 border border-blue-200",
 };
 
 const TYPE_COLORS: Record<string, string> = {
@@ -596,7 +596,7 @@ const JobDetail = () => {
                 {[
                   { icon: GraduationCap, label: "Students", value: school.students.toLocaleString(), color: "bg-blue-50 text-blue-600" },
                   { icon: Users, label: "Teachers", value: school.teachers.toString(), color: "bg-teal-50 text-teal-600" },
-                  { icon: BriefcaseBusiness, label: "Type", value: school.type, color: "bg-purple-50 text-purple-600" },
+                  { icon: BriefcaseBusiness, label: "Type", value: school.type, color: "bg-blue-50 text-blue-600" },
                 ].map((s) => {
                   const Icon = s.icon;
                   return (
@@ -720,7 +720,7 @@ const JobDetail = () => {
                     {[
                       { icon: Zap, label: "Quick Apply", color: "bg-blue-50 text-blue-600" },
                       { icon: Phone, label: "Direct Contact", color: "bg-teal-50 text-teal-600" },
-                      { icon: CheckCircle2, label: "Fast Response", color: "bg-purple-50 text-purple-600" },
+                      { icon: CheckCircle2, label: "Fast Response", color: "bg-blue-50 text-blue-600" },
                     ].map((b) => {
                       const Icon = b.icon;
                       return (

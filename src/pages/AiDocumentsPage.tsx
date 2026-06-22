@@ -97,7 +97,7 @@ const DocumentRenderer = ({
     template === "Modern"
       ? "#0ea5e9"
       : template === "Entry Level"
-        ? "#7c3aed"
+        ? "#2563eb"
         : "#184e77";
 
   if (editMode) {

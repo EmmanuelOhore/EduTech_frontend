@@ -25,7 +25,7 @@ const MODE_LABELS: Record<string, string> = {
 
 const MODE_COLORS: Record<string, string> = {
   FIXED_DAYS: "bg-blue-50 text-blue-700 border-blue-200",
-  FLEXIBLE: "bg-purple-50 text-purple-700 border-purple-200",
+  FLEXIBLE: "bg-blue-50 text-blue-700 border-blue-200",
   SEASONAL: "bg-amber-50 text-amber-700 border-amber-200",
   MULTI_BRANCH: "bg-teal-50 text-teal-700 border-teal-200",
 };
@@ -117,7 +117,7 @@ export default function RotationalSessionsPage() {
                 value: rotationalJobs.filter((j) => j.requiresMultiBranchTravel)
                   .length,
                 icon: Users,
-                color: "text-purple-600 bg-purple-50",
+                color: "text-blue-600 bg-blue-50",
               },
             ].map((stat) => {
               const Icon = stat.icon;
@@ -226,7 +226,7 @@ export default function RotationalSessionsPage() {
                           </span>
                         )}
                         {job.requiresMultiBranchTravel && (
-                          <span className="flex items-center gap-1 text-[11px] text-purple-600">
+                          <span className="flex items-center gap-1 text-[11px] text-blue-600">
                             <Users size={10} /> Multi-branch
                           </span>
                         )}

@@ -52,7 +52,7 @@ const partOfDay = (start?: string) => {
   const h = Number((start ?? "0").split(":")[0]);
   if (h < 12) return { label: "Morning", bar: "bg-amber-400", chip: "bg-amber-50 text-amber-700 ring-amber-100" };
   if (h < 17) return { label: "Afternoon", bar: "bg-sky-400", chip: "bg-sky-50 text-sky-700 ring-sky-100" };
-  return { label: "Evening", bar: "bg-violet-400", chip: "bg-violet-50 text-violet-700 ring-violet-100" };
+  return { label: "Evening", bar: "bg-blue-400", chip: "bg-blue-50 text-blue-700 ring-blue-100" };
 };
 
 const schoolName = (a: Assignment) =>

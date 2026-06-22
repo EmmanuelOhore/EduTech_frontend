@@ -63,10 +63,10 @@ const DAY_COLORS: Record<
     dot: "bg-blue-400",
   },
   TUE: {
-    bg: "bg-violet-50",
-    border: "border-violet-200",
-    text: "text-violet-700",
-    dot: "bg-violet-400",
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    text: "text-blue-700",
+    dot: "bg-blue-400",
   },
   WED: {
     bg: "bg-teal-50",

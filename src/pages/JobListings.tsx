@@ -74,7 +74,7 @@ const TYPE_LABELS: Record<string, string> = {
 const LEVEL_COLORS: Record<string, string> = {
   BEGINNER: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   INTERMEDIATE: "bg-amber-50 text-amber-700 border border-amber-200",
-  EXPERT: "bg-purple-50 text-purple-700 border border-purple-200",
+  EXPERT: "bg-blue-50 text-blue-700 border border-blue-200",
 };
 
 const TYPE_COLORS: Record<string, string> = {

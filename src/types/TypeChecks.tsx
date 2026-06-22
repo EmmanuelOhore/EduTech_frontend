@@ -139,6 +139,9 @@ export type TeacherRegisterPayload = RegisterPayload & {
 export type SchoolRegisterPayload = RegisterPayload & {
   schoolName: string;
   schoolLocation: string;
+  schoolState?: string;
+  schoolLga?: string;
+  schoolAddress?: string;
   schoolType: "PRIMARY" | "SECONDARY" | "TERTIARY" | "VOCATIONAL" | "OTHER";
   phone?: string;
   adminProfileImage?: string;
@@ -252,6 +255,9 @@ export type SchoolRegisterFormValues = RegisterPayload & {
   confirmPassword: string;
   schoolName: string;
   schoolLocation: string;
+  schoolState: string;
+  schoolLga: string;
+  schoolAddress: string;
   schoolType: "PRIMARY" | "SECONDARY" | "TERTIARY" | "VOCATIONAL" | "OTHER" | "";
   phone: string;
   schoolLogoUrl: string;
