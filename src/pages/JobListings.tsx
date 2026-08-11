@@ -376,69 +376,54 @@ const JobListings = () => {
       {/* ── FILTER BAR ────────────────────────────────────────── */}
       <section className="sticky top-16 z-30 border-b border-[#dbe4ef] bg-white shadow-sm shadow-slate-900/[0.04]">
         <div className="mx-auto w-full max-w-screen-xl px-6 py-4">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
 
-            <div className="relative min-w-[200px] flex-1">
+            {/* Search */}
+            <div className="relative min-w-[220px] flex-1">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search job title, school, subject…"
-                className="h-11 w-full rounded-xl border border-[#dbe4ef] bg-[#f8fafc] pl-10 pr-4 text-sm outline-none transition focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10"
+                className="h-10 w-full rounded-xl border border-[#e4ebf3] bg-[#f8fafc] pl-10 pr-9 text-sm text-[#172033] outline-none transition placeholder:text-slate-400 hover:border-[#cdd9e5] focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10"
               />
               {search && (
                 <button
                   onClick={() => setSearch("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
                 >
                   <X size={14} />
                 </button>
               )}
             </div>
 
-            <div className="relative">
-              <select
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="h-11 appearance-none rounded-xl border border-[#dbe4ef] bg-[#f8fafc] pl-4 pr-9 text-sm font-medium outline-none transition focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10"
-              >
-                {ALL_SUBJECTS.map((s) => (
-                  <option key={s}>{s}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
+            {/* Divider */}
+            <span className="hidden h-6 w-px bg-[#e4ebf3] lg:block" aria-hidden />
 
-            <div className="relative">
-              <select
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="h-11 appearance-none rounded-xl border border-[#dbe4ef] bg-[#f8fafc] pl-4 pr-9 text-sm font-medium outline-none transition focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10"
-              >
-                {ALL_LOCATIONS.map((l) => (
-                  <option key={l}>{l}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-
-            <div className="relative">
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value as (typeof LEVELS)[number])}
-                className="h-11 appearance-none rounded-xl border border-[#dbe4ef] bg-[#f8fafc] pl-4 pr-9 text-sm font-medium outline-none transition focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10"
-              >
-                {LEVELS.map((l) => (
-                  <option key={l}>{l}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
+            {/* Filters */}
+            {[
+              { value: subject, set: (v: string) => setSubject(v), opts: ALL_SUBJECTS },
+              { value: location, set: (v: string) => setLocation(v), opts: ALL_LOCATIONS },
+              { value: level, set: (v: string) => setLevel(v as (typeof LEVELS)[number]), opts: LEVELS as readonly string[] },
+            ].map((f, i) => (
+              <div key={i} className="relative">
+                <select
+                  value={f.value}
+                  onChange={(e) => f.set(e.target.value)}
+                  className="h-10 cursor-pointer appearance-none rounded-xl border border-[#e4ebf3] bg-white pl-3.5 pr-9 text-sm font-medium text-[#172033] outline-none transition hover:border-[#cdd9e5] focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
+                >
+                  {f.opts.map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            ))}
 
             {hasFilters && (
               <button
                 onClick={clearFilters}
-                className="flex h-11 items-center gap-2 rounded-xl border border-[#dbe4ef] bg-white px-4 text-sm font-semibold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                className="flex h-10 items-center gap-1.5 rounded-xl px-3 text-sm font-medium text-slate-500 transition hover:bg-red-50 hover:text-red-600"
               >
                 <X size={14} />
                 Clear
@@ -448,14 +433,14 @@ const JobListings = () => {
             {/* Near-me toggle */}
             <button
               onClick={() => (nearMode ? setNearMode(false) : enableNearMode())}
-              className={`flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-bold transition ${
+              className={`flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold transition ${
                 nearMode
-                  ? "border-[#184e77] bg-[#184e77] text-white"
-                  : "border-[#dbe4ef] bg-white text-[#184e77] hover:border-[#184e77]/40 hover:bg-[#e0f2fe]"
+                  ? "bg-[#184e77] text-white shadow-sm shadow-[#184e77]/25"
+                  : "border border-[#e4ebf3] bg-white text-[#184e77] hover:border-[#184e77]/40 hover:bg-[#eef5fb]"
               }`}
             >
               <Navigation size={14} />
-              {nearMode ? "Nearby: on" : "Jobs near me"}
+              {nearMode ? "Nearby on" : "Jobs near me"}
             </button>
 
             {nearMode && (
@@ -463,7 +448,7 @@ const JobListings = () => {
                 <select
                   value={maxKm}
                   onChange={(e) => setMaxKm(Number(e.target.value))}
-                  className="h-11 appearance-none rounded-xl border border-[#dbe4ef] bg-[#f8fafc] pl-4 pr-9 text-sm font-medium outline-none transition focus:border-[#184e77] focus:bg-white focus:ring-2 focus:ring-[#184e77]/10"
+                  className="h-10 cursor-pointer appearance-none rounded-xl border border-[#e4ebf3] bg-white pl-3.5 pr-9 text-sm font-medium text-[#172033] outline-none transition hover:border-[#cdd9e5] focus:border-[#184e77] focus:ring-2 focus:ring-[#184e77]/10"
                 >
                   {DISTANCE_OPTIONS.map((o) => (
                     <option key={o.value} value={o.value}>
@@ -475,14 +460,10 @@ const JobListings = () => {
               </div>
             )}
 
-            <span className="ml-auto hidden text-sm font-semibold text-slate-500 md:block">
-              <span className="font-black text-[#184e77]">
-                {nearMode ? nearbyJobs.length : filteredJobs.length}
-              </span>{" "}
-              {(nearMode ? nearbyJobs.length : filteredJobs.length) === 1
-                ? "role"
-                : "roles"}{" "}
-              found
+            {/* Result count */}
+            <span className="ml-auto hidden items-center gap-1 rounded-full bg-[#eef5fb] px-3 py-1.5 text-xs font-semibold text-[#184e77] md:inline-flex">
+              {nearMode ? nearbyJobs.length : filteredJobs.length}{" "}
+              {(nearMode ? nearbyJobs.length : filteredJobs.length) === 1 ? "role" : "roles"}
             </span>
           </div>
         </div>

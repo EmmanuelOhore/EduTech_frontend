@@ -37,7 +37,7 @@ import type {
 const api = axios.create({
   baseURL:
     import.meta.env.VITE_API_BASE_URL ??
-    "https://edutech-backend-659t.onrender.com/api",
+    "https://edutech-backend-6dw7.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -99,7 +99,9 @@ export const fetchNearbyJobs = async (params: {
       ...(params.maxKm ? { maxKm: params.maxKm } : {}),
       ...(params.subjectId ? { subjectId: params.subjectId } : {}),
       ...(params.level ? { level: params.level } : {}),
-      ...(params.employmentType ? { employmentType: params.employmentType } : {}),
+      ...(params.employmentType
+        ? { employmentType: params.employmentType }
+        : {}),
     },
   });
   return response.data.jobs.map(normalizeJob) as Job[];
@@ -126,9 +128,12 @@ export const fetchNearbyTeachers = async (
   institutionId: string,
   params: { maxKm?: number; teachingLevel?: string; kycStatus?: string } = {},
 ): Promise<NearbyTeacher[]> => {
-  const response = await api.get(`/institutions/${institutionId}/nearby-teachers`, {
-    params,
-  });
+  const response = await api.get(
+    `/institutions/${institutionId}/nearby-teachers`,
+    {
+      params,
+    },
+  );
   return response.data.teachers as NearbyTeacher[];
 };
 
@@ -165,7 +170,11 @@ export const applyToJob = async (
   coverLetter?: string,
   screeningAnswers?: { question: string; answer: string }[],
 ) => {
-  const response = await api.post("/applications", { jobId, coverLetter, screeningAnswers });
+  const response = await api.post("/applications", {
+    jobId,
+    coverLetter,
+    screeningAnswers,
+  });
   return response.data;
 };
 
@@ -346,7 +355,8 @@ export const updateMyTeacherProfile = async (
   if (location !== undefined) teacherBody.location = location;
   if (level !== undefined) teacherBody.level = level;
   if (teachingLevel !== undefined) teacherBody.teachingLevel = teachingLevel;
-  if (subjectExpertise !== undefined) teacherBody.subjectExpertise = subjectExpertise;
+  if (subjectExpertise !== undefined)
+    teacherBody.subjectExpertise = subjectExpertise;
   if (bio !== undefined) teacherBody.bio = bio;
   if (certificateUrl !== undefined) teacherBody.certificateUrl = certificateUrl;
   if (ninDocumentUrl !== undefined) teacherBody.ninDocumentUrl = ninDocumentUrl;
@@ -395,19 +405,25 @@ export const setInstitutionPlan = async (
   return response.data.institution as FullInstitution;
 };
 
-export const verifyInstitution = async (id: string): Promise<FullInstitution> => {
+export const verifyInstitution = async (
+  id: string,
+): Promise<FullInstitution> => {
   const response = await api.patch(`/institutions/${id}/verify`);
   return response.data.institution as FullInstitution;
 };
 
-export const deactivateInstitution = async (id: string): Promise<FullInstitution> => {
+export const deactivateInstitution = async (
+  id: string,
+): Promise<FullInstitution> => {
   const response = await api.patch(`/institutions/${id}/deactivate`);
   return response.data.institution as FullInstitution;
 };
 
 export const fetchAllTeachers = async (): Promise<TeacherProfile[]> => {
   const response = await api.get("/teachers");
-  return response.data.teachers.map(normalizeTeacherProfile) as TeacherProfile[];
+  return response.data.teachers.map(
+    normalizeTeacherProfile,
+  ) as TeacherProfile[];
 };
 
 export const updateTeacherKycStatus = async (
@@ -494,7 +510,9 @@ export const reviewGuarantor = async (
 
 export const fetchAllApplications = async (): Promise<JobApplication[]> => {
   const response = await api.get("/applications");
-  return response.data.applications.map(normalizeApplication) as JobApplication[];
+  return response.data.applications.map(
+    normalizeApplication,
+  ) as JobApplication[];
 };
 
 export const fetchSubjects = async (): Promise<Subject[]> => {
@@ -520,7 +538,10 @@ export const fetchTestDataSummary = async (): Promise<TestDataSummary> => {
 export const generateTestStaff = async (
   data: GenerateTestStaffPayload,
 ): Promise<GenerateTestStaffResult> => {
-  const response = await api.post("/admin-tools/test-data/generate-staff", data);
+  const response = await api.post(
+    "/admin-tools/test-data/generate-staff",
+    data,
+  );
   return response.data as GenerateTestStaffResult;
 };
 
@@ -1017,14 +1038,14 @@ export interface GeneratedDocumentResponse {
 }
 
 export const generateCV = async (
-  payload: GenerateCVPayload
+  payload: GenerateCVPayload,
 ): Promise<GeneratedDocumentResponse> => {
   const response = await api.post("/documents/generate-cv", payload);
   return response.data as GeneratedDocumentResponse;
 };
 
 export const generateCoverLetter = async (
-  payload: GenerateCoverLetterPayload
+  payload: GenerateCoverLetterPayload,
 ): Promise<GeneratedDocumentResponse> => {
   const response = await api.post("/documents/generate-cover-letter", payload);
   return response.data as GeneratedDocumentResponse;
@@ -1051,9 +1072,12 @@ export interface JobDescriptionDraft {
 }
 
 export const generateJobDescription = async (
-  payload: GenerateJobDescriptionPayload
+  payload: GenerateJobDescriptionPayload,
 ): Promise<JobDescriptionDraft> => {
-  const response = await api.post("/documents/generate-job-description", payload);
+  const response = await api.post(
+    "/documents/generate-job-description",
+    payload,
+  );
   return response.data.draft as JobDescriptionDraft;
 };
 
@@ -1083,7 +1107,7 @@ export const fetchJobTemplates = async (): Promise<JobTemplate[]> => {
 };
 
 export const createJobTemplate = async (
-  payload: JobTemplatePayload
+  payload: JobTemplatePayload,
 ): Promise<JobTemplate> => {
   const response = await api.post("/job-templates", payload);
   return response.data.template as JobTemplate;
@@ -1091,7 +1115,7 @@ export const createJobTemplate = async (
 
 export const updateJobTemplate = async (
   id: string,
-  payload: Partial<JobTemplatePayload>
+  payload: Partial<JobTemplatePayload>,
 ): Promise<JobTemplate> => {
   const response = await api.put(`/job-templates/${id}`, payload);
   return response.data.template as JobTemplate;
@@ -1149,11 +1173,26 @@ export interface ReplacementRequest {
   slaDueAt: string;
   resolvedAt?: string;
   createdAt: string;
-  sessionTemplateId?: { _id: string; title?: string; subject?: string; dayOfWeek?: string; startTime?: string; endTime?: string };
+  sessionTemplateId?: {
+    _id: string;
+    title?: string;
+    subject?: string;
+    dayOfWeek?: string;
+    startTime?: string;
+    endTime?: string;
+  };
   jobId?: { _id: string; title?: string };
   institutionId?: { _id: string; name?: string; location?: string };
-  originalTeacherId?: { _id: string; userId?: { firstName?: string; lastName?: string }; level?: string };
-  replacementTeacherId?: { _id: string; userId?: { firstName?: string; lastName?: string }; level?: string };
+  originalTeacherId?: {
+    _id: string;
+    userId?: { firstName?: string; lastName?: string };
+    level?: string;
+  };
+  replacementTeacherId?: {
+    _id: string;
+    userId?: { firstName?: string; lastName?: string };
+    level?: string;
+  };
 }
 
 export interface SubstituteCandidate {
@@ -1173,12 +1212,18 @@ export interface SubstituteCandidate {
   referenceCount: number;
 }
 
-export const fetchReplacements = async (status?: string): Promise<ReplacementRequest[]> => {
-  const response = await api.get(`/replacements${status ? `?status=${status}` : ""}`);
+export const fetchReplacements = async (
+  status?: string,
+): Promise<ReplacementRequest[]> => {
+  const response = await api.get(
+    `/replacements${status ? `?status=${status}` : ""}`,
+  );
   return response.data.requests as ReplacementRequest[];
 };
 
-export const fetchReplacementCandidates = async (id: string): Promise<SubstituteCandidate[]> => {
+export const fetchReplacementCandidates = async (
+  id: string,
+): Promise<SubstituteCandidate[]> => {
   const response = await api.get(`/replacements/${id}/candidates`);
   return response.data.candidates as SubstituteCandidate[];
 };
